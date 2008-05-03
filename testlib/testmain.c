@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    run_test(&fs);
     printf("  Test [\033[01;32mpassed\033[00;00m]\n");
 
     // Sonst bricht make ab

@@ -42,11 +42,12 @@ __attribute__((noreturn)) void test_error(const char* fmt, ...)
 {
     va_list valist;
 
-    printf("  Test \033[01;31mfailed\033[00;00m:\n  ");
-
+    printf("  ");
     va_start(valist, fmt);
     vprintf(fmt, valist);
     va_end(valist);
+
+    printf("\n  Test \033[01;31mfailed\033[00;00m\n");
 
     exit(-1);
 }

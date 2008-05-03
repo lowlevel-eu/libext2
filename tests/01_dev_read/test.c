@@ -1,6 +1,7 @@
 #include <ext2.h>
 #include <string.h>
 #include <stdio.h>
+#include <test.h>
 
 /**
  * Test: dev_read
@@ -17,13 +18,11 @@ int run_test(ext2_fs_t* fs)
     buffer[9] = 0;
     for (i = 0; i < 50; i++) {
         if (!fs->dev_read(i * test_len, test_len, buffer)) {
-            printf("Fehler beim Einlesen im %d. Durchlauf\n", i);
-            return -1;
+            test_error("Fehler beim Einlesen im %d. Durchlauf", i);
         }
 
         if (strcmp(test, buffer) != 0) {
-            printf("Fehler beim Vergleich im %d. Durchlauf\n", i);
-            return -2;
+            test_error("Fehler beim Vergleich im %d. Durchlauf", i);
         }
     }
     return 0;

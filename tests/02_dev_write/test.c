@@ -21,19 +21,19 @@ int run_test(ext2_fs_t* fs)
         }
 
         if (!fs->dev_write(j * 256, 256, buffer)) {
-            test_error("Fehler beim Schreiben im %d. Durchlauf\n", j);
+            test_error("Fehler beim Schreiben im %d. Durchlauf", j);
         }
     }
 
     // Geschriebene Daten pruefen
     for (j = 0; j < 1024; j++) {
         if (!fs->dev_read(j * 256, 256, buffer)) {
-            test_error("Fehler beim Einlesen im %d. Durchlauf\n", j);
+            test_error("Fehler beim Einlesen im %d. Durchlauf", j);
         }
 
         for (i = 0; i < 256; i++) {
             if (buffer[i] != (char) (j + i)) {
-                test_error("  Fehler beim Pruefen im %d. Durchlauf, Byte %d\n",
+                test_error("Fehler beim Pruefen im %d. Durchlauf, Byte %d",
                     j, i);
             }
         }
