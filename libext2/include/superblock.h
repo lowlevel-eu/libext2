@@ -224,5 +224,12 @@ static inline size_t ext2_sb_inodesize(ext2_superblock_t* sb) {
  */
 int ext2_sb_copy_count(ext2_superblock_t* sb);
 
+/**
+ * Vergleicht 2 Superblocks ob die wichtigen Felder gleich sind
+ *
+ * @return 1 wenn sie gleich sind, 0 sonst
+ */
+int ext2_sb_compare(ext2_superblock_t* a, ext2_superblock_t* b);
+
 #endif
 

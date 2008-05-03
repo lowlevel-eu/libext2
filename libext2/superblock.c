@@ -144,3 +144,14 @@ int ext2_sb_read_copy(ext2_fs_t* fs, ext2_superblock_t* sb,
     }
     return 0;
 }
+
+#define abcmp(x) (a->x == b->x)
+int ext2_sb_compare(ext2_superblock_t* a, ext2_superblock_t* b)
+{
+    return (abcmp(inode_count) && abcmp(block_count) && abcmp(free_blocks) &&
+        abcmp(free_inodes) && abcmp(first_data_block) && abcmp(block_size) &&
+        abcmp(blocks_per_group) && abcmp(inodes_per_group) && abcmp(magic) &&
+        abcmp(revision) && abcmp(inode_size) && abcmp(features_compat) &&
+        abcmp(features_incompat) && abcmp(features_ro));
+}
+
