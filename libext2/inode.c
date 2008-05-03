@@ -49,15 +49,21 @@ int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
 {
     int ret;
+    size_t inode_size;
+    uint64_t inode_offset;
+
     ext2_superblock_t sb;
     ext2_blockgroup_t bg;
 
     ext2_sb_read(fs, &sb);
     ext2_bg_read(fs, 0, &bg);
 
-    if (!fs->dev_read(ext2_sb_blocksize(&sb) * bg.inode_table + 
-        sizeof(ext2_inode_t) * inode_nr, 
-        sizeof(ext2_inode_t), inode, fs->dev_private)) 
+    inode_size = ext2_sb_inodesize(&sb);
+    inode_offset = ext2_sb_blocksize(&sb) * bg.inode_table
+        + inode_size * inode_nr;
+
+    if (!fs->dev_read(inode_offset, sizeof(*inode), inode,
+        fs->dev_private))
     {
         return 0;
     }
