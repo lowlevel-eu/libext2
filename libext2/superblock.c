@@ -49,3 +49,9 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
 
     return 1;
 }
+
+int ext2_sb_copy_count(ext2_superblock_t* sb)
+{
+    // TODO: Taugt so nur fuer rev0
+    return (sb->block_count + sb->blocks_per_group - 1) / sb->blocks_per_group - 1;
+}

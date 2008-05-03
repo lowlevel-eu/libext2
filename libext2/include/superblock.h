@@ -200,5 +200,14 @@ static inline ext2_sb_inodesize(ext2_superblock_t* sb) {
     }
 }
 
+/**
+ * Anzahl der Sicherheitskopien des Superblocks berechnen.
+ *
+ * @param sb Pointer auf den Superblock
+ *
+ * @return Anzahl der Kopien (ohne den ersten an 1024 Bytes)
+ */
+int ext2_sb_copy_count(ext2_superblock_t* sb);
+
 #endif
 
