@@ -50,7 +50,11 @@ static int dev_read(uint64_t start, size_t size, void* dest)
 
 static int dev_write(uint64_t start, size_t size, void* dest)
 {
-    return 0;
+    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
+        return 0;
+    }
+
+    return (write(image_fd, dest, size) == size);
 }
 
 
