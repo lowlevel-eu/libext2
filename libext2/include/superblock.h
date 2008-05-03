@@ -170,7 +170,7 @@ typedef struct {
  *
  * @return 1 wenn der Superblock erfolgreich eingelesen wurde, 0 sonst
  */
-int ext2_superblock_read(ext2_fs_t* fs, ext2_superblock_t* sb);
+int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
 
 #endif
 

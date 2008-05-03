@@ -13,7 +13,7 @@ int run_test(ext2_fs_t* fs)
 {
     ext2_superblock_t sb;
 
-    if (ext2_superblock_read(fs, &sb)) {
+    if (ext2_sb_read(fs, &sb)) {
         test_error("Superblock ist kaputt, wurde aber trotzdem eingelesen");
     }
 

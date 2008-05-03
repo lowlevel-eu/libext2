@@ -6,13 +6,13 @@
 /**
  * Test: read_superblock
  * Autor: Antoine Kaufmann
- * Zweck: ext2_read_superblock testen
+ * Zweck: ext2_read_sb testen
  */
 int run_test(ext2_fs_t* fs)
 {
     ext2_superblock_t sb;
 
-    if (!ext2_superblock_read(fs, &sb)) {
+    if (!ext2_sb_read(fs, &sb)) {
         test_error("Superblock konnte nicht eingelesen werden");
     }
 

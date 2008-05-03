@@ -35,7 +35,7 @@
 
 #include <ext2.h>
 
-int ext2_superblock_read(ext2_fs_t* fs, ext2_superblock_t* sb)
+int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
 {
     int ret;
 
