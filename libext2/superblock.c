@@ -48,8 +48,59 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
     return 1;
 }
 
+/**
+ * Prueft ob eine Zahl ein vielfaches von einer anderen ist
+ *
+ * @param x Zahl von der in Erfahrung gebracht werden soll ob sie ein
+ *          viellfaches von y ist oder nicht.
+ * @param y
+ *
+ * @return 1 wenn die Zahl ein Vielfaches ist, 0 sonst
+ */
+static int test_root(uint32_t x, uint32_t y)
+{
+    uint32_t current = y;
+
+    // Jetzt wird current solange mit y multipliziert bis das Ergebnis groesser
+    // oder gleich wie x ist
+    while (current < x) {
+        current *= y;
+    }
+
+    // Wenn das current jetzt gleich gross ist wie x ist es ein Vielfaches von
+    // y sonst nicht.
+    if (current == x) {
+        return 1;
+    }
+    return 0;
+}
+
+
+static int bg_has_sb(ext2_superblock_t* sb, int bg)
+{
+    // Wenn das feature Sparse Super nicht gesetzt ist, enthalten alle
+    // Blockgruppen eine Kopie
+    if ((sb->features_ro & EXT2_FEATURE_ROCOMP_SPARSE_SUPER) == 0) {
+        return 1;
+    }
+
+    // Mit SPARSE_SUPER ist die Entscheidung etwas komplizierter. Da werden
+    // naemlich Kopien in allen Gruppen abgespeichert, deren Nummer ein
+    // Vielfaches von 3, 5 oder 7 sind. Auch in der Ersten Gruppe ist dann eine
+    // Kopie
+    return ((bg <= 1) || test_root(bg, 3) || test_root(bg, 5) ||
+        test_root(bg, 7));
+}
+
 int ext2_sb_copy_count(ext2_superblock_t* sb)
 {
-    // TODO: Taugt so nur fuer rev0
-    return (sb->block_count + sb->blocks_per_group - 1) / sb->blocks_per_group - 1;
+    int count = 0;
+    int i;
+    int group_count = (sb->block_count + sb->blocks_per_group - 1) / sb->
+        blocks_per_group;
+
+    for (i = 1; i < group_count; i++) {
+        count += bg_has_sb(sb, i);
+    }
+    return count;
 }

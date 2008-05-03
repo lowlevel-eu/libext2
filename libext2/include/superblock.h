@@ -162,6 +162,9 @@ typedef struct {
 // Magic-Number eines EXT2-Dateisystems
 #define EXT2_SB_MAGIC 0xEF53
 
+/// Sparse-Super Feature
+#define EXT2_FEATURE_ROCOMP_SPARSE_SUPER 0x1
+
 /**
  * Superblock einlesen
  *
