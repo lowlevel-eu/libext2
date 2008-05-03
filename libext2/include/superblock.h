@@ -172,5 +172,16 @@ typedef struct {
  */
 int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
 
+
+/**
+ * Errechnet die Blockgroesse auf einem Dateisystem
+ *
+ * @param sb Pointer auf den Superblock
+ *
+ * @return Blockgroesse in Bytes
+ */
+static inline ext2_sb_blocksize(ext2_superblock_t* sb) {
+    return 1024 << sb->block_size;
+}
 #endif
 
