@@ -33,8 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _EXT2_SB_H_
-#define _EXT2_SB_H_
+#ifndef _SUPERBLOCK_H_
+#define _SUPERBLOCK_H_
 
 #include <stdint.h>
 
