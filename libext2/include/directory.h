@@ -56,4 +56,15 @@ typedef struct ext2_dirent {
     char name[];
 } __attribute__((packed)) ext2_dirent_t;
 
+
+/// Verzeichniseintraege verabeiten
+void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
+    int (*handler) (ext2_dirent_t*, void*), void* private);
+
+/**
+ * Nullterminierten String allozieren und mit dem Namen eines
+ * Verzeichniseintrags fuellen
+ */
+char* ext2_dir_alloc_name(ext2_dirent_t* dirent);
+
 #endif

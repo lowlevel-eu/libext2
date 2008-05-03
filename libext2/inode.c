@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ext2.h>
+#include <string.h>
+#include "ext2.h"
 
 int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
 {
@@ -81,4 +82,17 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     }
 
     return 1;
+}
+
+int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
+    size_t len, void* buf)
+{
+    // TODO Testcase, der ueber Blockgrenzen liest und start != 0 hat
+    char localbuf[4096];
+    int ret;
+
+    ret = ext2_inode_readblk(fs, inode, 0, localbuf);
+    memcpy(buf, localbuf, len);
+
+    return ret;
 }
