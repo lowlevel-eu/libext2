@@ -37,8 +37,6 @@
 
 int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
 {
-    int ret;
-
     if (!fs->dev_read(1024, sizeof(ext2_superblock_t), sb, fs->dev_private)) {
         return 0;
     }

@@ -180,7 +180,7 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
  *
  * @return Blockgroesse in Bytes
  */
-static inline ext2_sb_blocksize(ext2_superblock_t* sb) {
+static inline size_t ext2_sb_blocksize(ext2_superblock_t* sb) {
     return 1024 << sb->block_size;
 }
 
@@ -191,7 +191,7 @@ static inline ext2_sb_blocksize(ext2_superblock_t* sb) {
  *
  * @return Blockgroesse in Bytes
  */
-static inline ext2_sb_inodesize(ext2_superblock_t* sb) {
+static inline size_t ext2_sb_inodesize(ext2_superblock_t* sb) {
     // Das Inode-Size Feld ist nur gueltig, wenn die Revision 1 ist
     if (sb->revision == 0) {
         return 128;

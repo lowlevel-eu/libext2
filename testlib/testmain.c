@@ -37,6 +37,9 @@
 #include <ext2.h>
 #include <fcntl.h>
 #include <setjmp.h>
+#include <unistd.h>
+
+#include "test.h"
 
 jmp_buf exit_test;
 char* test_name;
@@ -91,5 +94,9 @@ int main(int argc, char* argv[])
         case 2:
             return 2;
     }
+
+    // Wird nie erreicht
+    printf("\nBUG: Das Ende von main() wurde erreicht\n\n");
+    return -1;
 }
 
