@@ -58,7 +58,10 @@ void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
             break;
         }
 
-        // TODO Testcase fuer record_len == 0
+        if (entry->record_len == 0) {
+            // TODO: Was geschieht mit dem kaputten FS?
+            break;
+        }
         pos += entry->record_len;
     }
 }
