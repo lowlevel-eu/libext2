@@ -37,5 +37,15 @@
 
 int ext2_superblock_read(ext2_fs_t* fs, ext2_superblock_t* sb)
 {
-    return fs->dev_read(1024, sizeof(ext2_superblock_t), sb, fs->dev_private);
+    int ret;
+
+    if (!fs->dev_read(1024, sizeof(ext2_superblock_t), sb, fs->dev_private)) {
+        return 0;
+    }
+
+    if (sb->magic != EXT2_SB_MAGIC) {
+        return 0;
+    }
+
+    return 1;
 }
