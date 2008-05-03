@@ -42,7 +42,7 @@
 /**
  * Superblock eines ext2-Dateisystems
  */
-typedef struct {
+typedef struct ext2_superblock_t {
     /// Anzahl der Inodes
     uint32_t inode_count;
 

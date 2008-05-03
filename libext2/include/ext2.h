@@ -39,6 +39,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+struct ext2_superblock_t;
 typedef struct {
     /**
      * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
@@ -73,7 +74,19 @@ typedef struct {
 
     /// Private Daten zum Zugriff auf den Datentraeger
     void* dev_private;
+
+    /// Superblock des Dateisystems
+    struct ext2_superblock_t* sb;
 } ext2_fs_t;
+
+/**
+ * ext2-Dateisystem einbinden. Dafuer muessen dev_read, dev_write und
+ * dev_private (falls notwendig) initialisiert sein.
+ *
+ * @return 1 bei Erfolg, im Fehlerfall 0
+ */
+int ext2_fs_mount(ext2_fs_t* fs);
+
 
 #include "superblock.h"
 #include "blockgroup.h"
