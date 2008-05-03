@@ -6,7 +6,7 @@ LL_OBJS= $(LIBEXT2_OBJ)
 
 TESTS= $(notdir $(wildcard tests/*))
 
-CFLAGS += -Wall -Werror -O2
+CFLAGS += -Wall -Werror -O2 -g
 
 
 ##############################################################################
