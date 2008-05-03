@@ -37,7 +37,31 @@
 #include <stdlib.h>
 
 typedef struct {
+    /**
+     * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
+     * liest Daten vom Datentraeger ein, auf dem sich das Dateisystem befindet.
+     *
+     * @param start Position von der an gelesen werden soll
+     * @param size  Anzahl der zu lesenden Bytes
+     * @param dest  Pointer auf den Puffer in dem die Daten abgelegt werden
+     *              sollen
+     *
+     * @return 1 wenn das Lesen geklappt hat, 0 sonst
+     */
     int (*dev_read)(uint64_t start, size_t size, void* dest);
+
+    /**
+     * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
+     * schreibt Daten auf den Datentraeger, auf dem sich das Dateisystem
+     * befindet.
+     *
+     * @param start Position von der an gelesen werden soll
+     * @param size  Anzahl der zu lesenden Bytes
+     * @param dest  Pointer auf den Puffer, aus dem die Daten gelesen werden
+     *              sollen.
+     *
+     * @return 1 wenn das Schreiben geklappt hat, 0 sonst
+     */
     int (*dev_write)(uint64_t start, size_t size, void* source);
 } ext2_fs_t;
 
