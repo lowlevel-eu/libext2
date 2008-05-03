@@ -65,3 +65,5 @@ typedef struct {
     int (*dev_write)(uint64_t start, size_t size, void* source);
 } ext2_fs_t;
 
+#include "ext2_sb.h"
+
