@@ -32,12 +32,19 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #include <ext2.h>
 
-int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
+/**
+ * Liest den Superblock vom angegebenen Offset auf der Platte und prueft ob die
+ * Magic stimmt.
+ *
+ * @param start Offset auf der Platte
+ *
+ * @return 1 bei Erfolg, 0 sonst
+ */
+static int sb_read_from(ext2_fs_t* fs, ext2_superblock_t* sb, uint64_t start)
 {
-    if (!fs->dev_read(1024, sizeof(ext2_superblock_t), sb, fs->dev_private)) {
+    if (!fs->dev_read(start, sizeof(ext2_superblock_t), sb, fs->dev_private)) {
         return 0;
     }
 
@@ -46,6 +53,11 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
     }
 
     return 1;
+}
+
+int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
+{
+    return sb_read_from(fs, sb, 1024);
 }
 
 /**
@@ -75,7 +87,13 @@ static int test_root(uint32_t x, uint32_t y)
     return 0;
 }
 
-
+/**
+ * Prueft ob eine Blockgruppe eine Superblockkopie enthaelt
+ *
+ * @param bg Nummer der Blockgruppe
+ *
+ * @return 1 wenn sie eine Kopie hat, 0 sonst
+ */
 static int bg_has_sb(ext2_superblock_t* sb, int bg)
 {
     // Wenn das feature Sparse Super nicht gesetzt ist, enthalten alle
@@ -103,4 +121,26 @@ int ext2_sb_copy_count(ext2_superblock_t* sb)
         count += bg_has_sb(sb, i);
     }
     return count;
+}
+
+int ext2_sb_read_copy(ext2_fs_t* fs, ext2_superblock_t* sb,
+    ext2_superblock_t* dest, int copy)
+{
+    int i;
+    int group_count = (sb->block_count + sb->blocks_per_group - 1) / sb->
+        blocks_per_group;
+    int count = 0;
+    uint64_t start;
+
+    for (i = 1; (i <= group_count) && (count <= copy); i++) {
+        if (bg_has_sb(sb, i)) {
+            if (count == copy) {
+                start = (sb->first_data_block + i * sb->blocks_per_group) *
+                    ext2_sb_blocksize(sb);
+                return sb_read_from(fs, dest, start);
+            }
+            count++;
+        }
+    }
+    return 0;
 }
