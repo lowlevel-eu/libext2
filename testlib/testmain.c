@@ -36,6 +36,10 @@
 #include <stdio.h>
 #include <ext2.h>
 #include <fcntl.h>
+#include <setjmp.h>
+
+jmp_buf exit_test;
+char* test_name;
 
 static int image_fd;
 
@@ -63,21 +67,28 @@ int main(int argc, char* argv[])
 {
     ext2_fs_t fs;
 
-    printf("Test %s:\n", argv[0]);
-
     fs.dev_read = dev_read;
     fs.dev_write = dev_write;
+        
+    test_name = argv[0];
+    printf("Test %s...", test_name);
 
-    image_fd = open(argv[1], O_RDWR);
-    if (image_fd == -1) {
-        puts("  Fehler beim Oeffnen des Images");
-        return -1;
+    switch (setjmp(exit_test)) {
+        case 0:
+            image_fd = open(argv[1], O_RDWR);
+            if (image_fd == -1) {
+                test_interror("Fehler beim Oeffnen des Images");
+            }
+
+            run_test(&fs);
+            printf("\r[\033[01;32mpassed\033[00;00m] %s\n", argv[0]);
+            return 0;
+
+        case 1:
+            return 1;
+
+        case 2:
+            return 2;
     }
-
-    run_test(&fs);
-    printf("  Test [\033[01;32mpassed\033[00;00m]\n");
-
-    // Sonst bricht make ab
-    return 0;
 }
 

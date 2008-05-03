@@ -36,19 +36,36 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <setjmp.h>
 #include "test.h"
+
+extern jmp_buf exit_test;
+extern char* test_name;
 
 __attribute__((noreturn)) void test_error(const char* fmt, ...)
 {
     va_list valist;
 
-    printf("  ");
+    printf("\r[\033[01;31mfailed\033[00;00m] %s\n", test_name);
+    printf("         ");
     va_start(valist, fmt);
     vprintf(fmt, valist);
     va_end(valist);
+    puts("");
 
-    printf("\n  Test \033[01;31mfailed\033[00;00m\n");
-
-    exit(-1);
+    longjmp(exit_test, 1);
 }
 
+__attribute__((noreturn)) void test_interror(const char* fmt, ...)
+{
+    va_list valist;
+
+    printf("\r[\033[01;33merror \033[00;00m] %s\n", test_name);
+    printf("         ");
+    va_start(valist, fmt);
+    vprintf(fmt, valist);
+    va_end(valist);
+    puts("");
+
+    longjmp(exit_test, 2);
+}

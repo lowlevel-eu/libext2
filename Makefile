@@ -32,14 +32,13 @@ tests/$(1)/test: libext2.a libtest.a $$($(1)_OBJ)
 	$(CC) -L . -o tests/$(1)/test $$($(1)_OBJ) -lext2 -ltest
 
 run_tests/$(1)/test: tests/$(1)/test
-	@tests/$(1)/test tests/$(1)/image
+	@tests/$(1)/test tests/$(1)/image || true
 endef
 $(foreach test,$(TESTS),$(eval $(call TEST_template,$(test))))
 
 
 build_tests: $(TESTS:%=tests/%/test)
 run_tests: $(TESTS:%=run_tests/%/test)
-
 
 ##############################################################################
 # Targets fuer libext2
