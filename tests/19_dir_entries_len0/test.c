@@ -15,7 +15,7 @@ int run_test(ext2_fs_t* fs)
 {
     ext2_inode_t rootdir;
 
-    rootdir.size = 0;
+    ext2_fs_mount(fs);
 
     if (!ext2_inode_read(fs, 1, &rootdir)) {
         test_interror("Inode konnte nicht eingelesen werden");
