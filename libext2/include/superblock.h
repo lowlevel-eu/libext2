@@ -183,5 +183,22 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
 static inline ext2_sb_blocksize(ext2_superblock_t* sb) {
     return 1024 << sb->block_size;
 }
+
+/**
+ * Errechnet die Blockgroesse auf einem Dateisystem
+ *
+ * @param sb Pointer auf den Superblock
+ *
+ * @return Blockgroesse in Bytes
+ */
+static inline ext2_sb_inodesize(ext2_superblock_t* sb) {
+    // Das Inode-Size Feld ist nur gueltig, wenn die Revision 1 ist
+    if (sb->revision == 0) {
+        return 128;
+    } else {
+        return sb->inode_size;
+    }
+}
+
 #endif
 
