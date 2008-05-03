@@ -37,8 +37,6 @@
 
 int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
 {
-    int ret;
-
     if (!fs->dev_read(2048, sizeof(ext2_blockgroup_t), bg, fs->dev_private)) {
         return 0;
     }
@@ -48,7 +46,6 @@ int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
 
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
 {
-    int ret;
     size_t inode_size;
     uint64_t inode_offset;
 
@@ -62,9 +59,24 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
     inode_offset = ext2_sb_blocksize(&sb) * bg.inode_table
         + inode_size * inode_nr;
 
-    if (!fs->dev_read(inode_offset, sizeof(*inode), inode,
-        fs->dev_private))
-    {
+    if (!fs->dev_read(inode_offset, sizeof(*inode), inode, fs->dev_private)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
+    void* buf)
+{
+    ext2_superblock_t sb;
+    ext2_sb_read(fs, &sb);
+
+    size_t   block_size = ext2_sb_blocksize(&sb);
+    uint64_t block_nr = inode->blocks[block];
+    uint64_t block_offset = block_size * block_nr;
+
+    if (!fs->dev_read(block_offset, block_size, buf, fs->dev_private)) {
         return 0;
     }
 

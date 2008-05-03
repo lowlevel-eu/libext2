@@ -43,5 +43,12 @@
  */
 __attribute__((noreturn)) void test_error(const char* fmt, ...);
 
+/**
+ * Zeigt einen internen Fehler an, und bricht den Test ab.
+ *
+ * @param fmt Formatierungsstring wie fuer printf
+ */
+__attribute__((noreturn)) void test_interror(const char* fmt, ...);
+
 #endif
 

@@ -107,4 +107,8 @@ typedef struct ext2_inode_t {
     uint16_t reserved2[5];
 } __attribute__((packed)) ext2_inode_t;
 
+int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode);
+int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
+    void* buf);
+
 #endif

@@ -78,5 +78,6 @@ typedef struct {
 #include "superblock.h"
 #include "blockgroup.h"
 #include "inode.h"
+#include "directory.h"
 
 #endif
