@@ -32,7 +32,8 @@ tests/$(1)/test: libext2.a libtest.a $$($(1)_OBJ)
 	$(CC) -L . -o tests/$(1)/test $$($(1)_OBJ) -lext2 -ltest
 
 run_tests/$(1)/test: tests/$(1)/test
-	@tests/$(1)/test tests/$(1)/image || true
+	@cp tests/$(1)/image tests/$(1)/img.run
+	@(tests/$(1)/test tests/$(1)/img.run && rm tests/$(1)/img.run) || true
 endef
 $(foreach test,$(TESTS),$(eval $(call TEST_template,$(test))))
 
