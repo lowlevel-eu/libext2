@@ -97,7 +97,9 @@ typedef struct {
 
     /// Behandlung von Fehlern
     uint16_t errors;
-    uint16_t padding;
+
+    /// Minor Revision Level
+    uint16_t minor_revision;
 
     /// Zeit des letzten Checks
     uint32_t last_check_time;
