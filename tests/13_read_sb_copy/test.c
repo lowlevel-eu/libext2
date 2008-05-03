@@ -17,7 +17,8 @@ int run_test(ext2_fs_t* fs)
         test_error("Original Superblock konnte nicht eingelesen werden");
     }
 
-    if (!ext2_sb_read_copy(fs, &sb_orig, &sb, 1)) {
+    fs->sb = &sb_orig;
+    if (!ext2_sb_read_copy(fs, &sb, 1)) {
         test_error("Superblockkopie konnte nicht eingelesen werden");
     }
 

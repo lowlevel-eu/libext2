@@ -178,15 +178,13 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
 /**
  * Superblockkopie einlesen
  *
- * @param sb    Original des Superblocks
  * @param dest  Pointer auf den Speicherbereich in den der Superblock kopiert
  *              werden soll.
  * @param copy  Nummer der Kopie, 0 ist die erste Kopie
  *
  * @return 1 wenn die Kopie eingelesen wurde, 0 sonst
  */
-int ext2_sb_read_copy(ext2_fs_t* fs, ext2_superblock_t* sb,
-    ext2_superblock_t* dest, int copy);
+int ext2_sb_read_copy(ext2_fs_t* fs, ext2_superblock_t* dest, int copy);
 
 /**
  * Errechnet die Blockgroesse auf einem Dateisystem

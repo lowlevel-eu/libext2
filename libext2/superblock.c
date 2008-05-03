@@ -73,18 +73,11 @@ static int test_root(uint32_t x, uint32_t y)
 {
     uint32_t current = y;
 
-    // Jetzt wird current solange mit y multipliziert bis das Ergebnis groesser
-    // oder gleich wie x ist
     while (current < x) {
         current *= y;
     }
 
-    // Wenn das current jetzt gleich gross ist wie x ist es ein Vielfaches von
-    // y sonst nicht.
-    if (current == x) {
-        return 1;
-    }
-    return 0;
+    return (current == x);
 }
 
 /**
@@ -123,20 +116,19 @@ int ext2_sb_copy_count(ext2_superblock_t* sb)
     return count;
 }
 
-int ext2_sb_read_copy(ext2_fs_t* fs, ext2_superblock_t* sb,
-    ext2_superblock_t* dest, int copy)
+int ext2_sb_read_copy(ext2_fs_t* fs, ext2_superblock_t* dest, int copy)
 {
     int i;
-    int group_count = (sb->block_count + sb->blocks_per_group - 1) / sb->
-        blocks_per_group;
+    int group_count = (fs->sb->block_count + fs->sb->blocks_per_group - 1) /
+        fs->sb->blocks_per_group;
     int count = 0;
     uint64_t start;
 
     for (i = 1; (i <= group_count) && (count <= copy); i++) {
-        if (bg_has_sb(sb, i)) {
+        if (bg_has_sb(fs->sb, i)) {
             if (count == copy) {
-                start = (sb->first_data_block + i * sb->blocks_per_group) *
-                    ext2_sb_blocksize(sb);
+                start = (fs->sb->first_data_block + i * fs->sb->
+                    blocks_per_group) * ext2_sb_blocksize(fs->sb);
                 return sb_read_from(fs, dest, start);
             }
             count++;

@@ -50,7 +50,7 @@ static int fs_check_fast(ext2_fs_t* fs)
 
     // Superblockkopien vergleichen
     for (i = 0; i < count; i++) {
-        if (!ext2_sb_read_copy(fs, fs->sb, &sb, i)) {
+        if (!ext2_sb_read_copy(fs, &sb, i)) {
             return 0;
         }
 
