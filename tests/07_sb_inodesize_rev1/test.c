@@ -18,7 +18,7 @@ int run_test(ext2_fs_t* fs)
     }
 
     size = ext2_sb_inodesize(&sb);
-    if (size != 128) {
+    if (size != 256) {
         test_error("Errechnete Inodegroesse (%d) stimmt nicht", size);
     }
 
