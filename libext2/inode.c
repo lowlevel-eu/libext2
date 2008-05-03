@@ -87,12 +87,23 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
 int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
     size_t len, void* buf)
 {
-    // TODO Testcase, der ueber Blockgrenzen liest und start != 0 hat
-    char localbuf[4096];
-    int ret;
+    ext2_superblock_t sb;
+    ext2_sb_read(fs, &sb);
 
-    ret = ext2_inode_readblk(fs, inode, 0, localbuf);
-    memcpy(buf, localbuf, len);
+    size_t block_size = ext2_sb_blocksize(&sb);
+    uint64_t start_block = start / block_size;
+    char localbuf[((len / block_size) + 1) * block_size];
+    int i, ret;
 
-    return ret;
+    for (i = 0; i <= len / block_size; i++) {
+        ret = ext2_inode_readblk(fs, inode, start_block + i,
+            localbuf + i * block_size);
+
+        if (!ret) {
+            return 0;
+        }
+    }
+    memcpy(buf, localbuf + (start % block_size), len);
+
+    return 0;
 }
