@@ -17,7 +17,7 @@ int run_test(ext2_fs_t* fs)
 
     buffer[9] = 0;
     for (i = 0; i < 50; i++) {
-        if (!fs->dev_read(i * test_len, test_len, buffer)) {
+        if (!fs->dev_read(i * test_len, test_len, buffer, fs->dev_private)) {
             test_error("Fehler beim Einlesen im %d. Durchlauf", i);
         }
 

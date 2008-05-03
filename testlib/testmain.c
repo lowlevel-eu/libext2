@@ -43,7 +43,7 @@ char* test_name;
 
 static int image_fd;
 
-static int dev_read(uint64_t start, size_t size, void* dest)
+static int dev_read(uint64_t start, size_t size, void* dest, void* prv)
 {
     if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
         return 0;
@@ -52,7 +52,7 @@ static int dev_read(uint64_t start, size_t size, void* dest)
     return (read(image_fd, dest, size) == size);
 }
 
-static int dev_write(uint64_t start, size_t size, void* dest)
+static int dev_write(uint64_t start, size_t size, void* dest, void* prv)
 {
     if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
         return 0;
@@ -69,6 +69,7 @@ int main(int argc, char* argv[])
 
     fs.dev_read = dev_read;
     fs.dev_write = dev_write;
+    fs.dev_private = NULL;
         
     test_name = argv[0];
     printf("Test %s...", test_name);

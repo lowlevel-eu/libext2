@@ -45,10 +45,12 @@ typedef struct {
      * @param size  Anzahl der zu lesenden Bytes
      * @param dest  Pointer auf den Puffer in dem die Daten abgelegt werden
      *              sollen
+     * @param prv   Private Daten zum Zugriff auf den Datentraeger (z.B.
+     *              Dateideskriptor), aus dev_private zu entnehmen
      *
      * @return 1 wenn das Lesen geklappt hat, 0 sonst
      */
-    int (*dev_read)(uint64_t start, size_t size, void* dest);
+    int (*dev_read)(uint64_t start, size_t size, void* dest, void* prv);
 
     /**
      * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
@@ -59,10 +61,15 @@ typedef struct {
      * @param size  Anzahl der zu lesenden Bytes
      * @param dest  Pointer auf den Puffer, aus dem die Daten gelesen werden
      *              sollen.
+     * @param prv   Private Daten zum Zugriff auf den Datentraeger (z.B.
+     *              Dateideskriptor), aus dev_private zu entnehmen
      *
      * @return 1 wenn das Schreiben geklappt hat, 0 sonst
      */
-    int (*dev_write)(uint64_t start, size_t size, void* source);
+    int (*dev_write)(uint64_t start, size_t size, void* source, void* prv);
+
+    /// Private Daten zum Zugriff auf den Datentraeger
+    void* dev_private;
 } ext2_fs_t;
 
 #include "ext2_sb.h"
