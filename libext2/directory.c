@@ -36,6 +36,12 @@
 #include <string.h>
 #include "ext2.h"
 
+struct private_dir_get {
+    char* name;
+    size_t name_len;
+    ext2_dirent_t* result;
+    int found;
+};
 
 void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
     int (*handler) (ext2_dirent_t*, void*), void* private)
@@ -55,6 +61,36 @@ void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
         // TODO Testcase fuer record_len == 0
         pos += entry->record_len;
     }
+}
+
+static int dir_get_handler(ext2_dirent_t* dirent, void* prv)
+{
+    struct private_dir_get* p = prv;
+
+    if (p->name_len != dirent->name_len) {
+        return 0;
+    }
+
+    if (!strncmp(p->name, dirent->name, p->name_len)) {
+        p->result = malloc(dirent->record_len);
+        memcpy(p->result, dirent, dirent->record_len);
+        return 1;
+    }
+
+    return 0;
+}
+
+ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
+    char* name)
+{
+    struct private_dir_get prv = {
+        .name = name,
+        .name_len = strlen(name),
+        .result = NULL
+    };
+
+    ext2_dir_foreach(fs, inode, dir_get_handler, &prv);
+    return prv.result;
 }
 
 char* ext2_dir_alloc_name(ext2_dirent_t* dirent)

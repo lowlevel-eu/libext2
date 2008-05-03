@@ -34,6 +34,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 #include "ext2.h"
 
 int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
@@ -70,13 +71,35 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
 int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     void* buf)
 {
+    size_t   block_size;
+    uint64_t block_nr;
+    uint64_t block_offset;
+
     ext2_superblock_t sb;
     ext2_sb_read(fs, &sb);
+    block_size = ext2_sb_blocksize(&sb);
 
-    size_t   block_size = ext2_sb_blocksize(&sb);
-    uint64_t block_nr = inode->blocks[block];
-    uint64_t block_offset = block_size * block_nr;
+    // TODO Doppelt und dreifach indirekte Blocks
+    uint64_t get_indirect_block_nr(uint64_t index, uint64_t table_block)
+    {
+        uint32_t table[block_size / 4];
 
+        if (!fs->dev_read(table_block * block_size, block_size, table,
+            fs->dev_private))
+        {
+            return 0;
+        }
+
+        return table[index];
+    }
+
+    if (block < 12) {
+        block_nr = inode->blocks[block];
+    } else {
+        block_nr = get_indirect_block_nr(block - 12, inode->blocks[12]);
+    }
+
+    block_offset = block_size * block_nr;
     if (!fs->dev_read(block_offset, block_size, buf, fs->dev_private)) {
         return 0;
     }

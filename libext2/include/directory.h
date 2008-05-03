@@ -61,6 +61,10 @@ typedef struct ext2_dirent {
 void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
     int (*handler) (ext2_dirent_t*, void*), void* private);
 
+/// Sucht einen Verzeichniseintrag nach dem Namen
+ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
+    char* name);
+
 /**
  * Nullterminierten String allozieren und mit dem Namen eines
  * Verzeichniseintrags fuellen
