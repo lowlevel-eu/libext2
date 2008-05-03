@@ -76,5 +76,7 @@ typedef struct {
 } ext2_fs_t;
 
 #include "superblock.h"
+#include "blockgroup.h"
+#include "inode.h"
 
 #endif
