@@ -35,9 +35,39 @@
 #include <ext2.h>
 #include <stdlib.h>
 
+
+/**
+ * Prueft ob das Dateisystem konsistent aussieht, ohne Bitmap-Checks und co.
+ * Dazu muss die Superblockkopie in der FS-Struktur geladen sein.
+ *
+ * @return 1 wenn das Dateisystem in Ordung ist, 0 sonst.
+ */
+static int fs_check_fast(ext2_fs_t* fs)
+{
+    int count = ext2_sb_copy_count(fs->sb);
+    int i;
+    ext2_superblock_t sb;
+
+    // Superblockkopien vergleichen
+    for (i = 0; i < count; i++) {
+        if (!ext2_sb_read_copy(fs, fs->sb, &sb, i)) {
+            return 0;
+        }
+
+        if (!ext2_sb_compare(fs->sb, &sb)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int ext2_fs_mount(ext2_fs_t* fs)
 {
     fs->sb = malloc(sizeof(ext2_superblock_t));
-    return ext2_sb_read(fs, fs->sb);
+    if (!ext2_sb_read(fs, fs->sb)) {
+        return 0;
+    }
+
+    return fs_check_fast(fs);
 }
 
