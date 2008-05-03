@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "test.h"
 
@@ -65,6 +66,11 @@ static int dev_write(uint64_t start, size_t size, void* dest, void* prv)
 }
 
 
+static void sigsegv_handler(int sig)
+{
+    test_interror("Segfault");
+}
+
 extern int run_test(ext2_fs_t* fs);
 int main(int argc, char* argv[])
 {
@@ -73,6 +79,8 @@ int main(int argc, char* argv[])
     fs.dev_read = dev_read;
     fs.dev_write = dev_write;
     fs.dev_private = NULL;
+
+    signal(SIGSEGV, sigsegv_handler);
 
     test_name = argv[0];
     printf("Test %s...", test_name);
