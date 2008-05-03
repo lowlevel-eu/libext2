@@ -5,7 +5,7 @@
 
 /**
  * Test:  read_broken_superblock
- * Autor: Antoine Kaufmann
+ * Autor: Kevin Wolf
  * Zweck: ext2_read_superblock testen. Das Image enthaelt keinen gueltigen
  *        Superblock und soll deswegen zurueckgewiesen werden
  */
