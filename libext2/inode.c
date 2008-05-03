@@ -50,15 +50,12 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
 {
     size_t inode_size;
     uint64_t inode_offset;
-
-    ext2_superblock_t sb;
     ext2_blockgroup_t bg;
 
-    ext2_sb_read(fs, &sb);
     ext2_bg_read(fs, 0, &bg);
 
-    inode_size = ext2_sb_inodesize(&sb);
-    inode_offset = ext2_sb_blocksize(&sb) * bg.inode_table
+    inode_size = ext2_sb_inodesize(fs->sb);
+    inode_offset = ext2_sb_blocksize(fs->sb) * bg.inode_table
         + inode_size * inode_nr;
 
     if (!fs->dev_read(inode_offset, sizeof(*inode), inode, fs->dev_private)) {
@@ -75,9 +72,7 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     uint64_t block_nr;
     uint64_t block_offset;
 
-    ext2_superblock_t sb;
-    ext2_sb_read(fs, &sb);
-    block_size = ext2_sb_blocksize(&sb);
+    block_size = ext2_sb_blocksize(fs->sb);
 
     // TODO Doppelt und dreifach indirekte Blocks
     uint64_t get_indirect_block_nr(uint64_t index, uint64_t table_block)
@@ -110,10 +105,7 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
 int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
     size_t len, void* buf)
 {
-    ext2_superblock_t sb;
-    ext2_sb_read(fs, &sb);
-
-    size_t block_size = ext2_sb_blocksize(&sb);
+    size_t block_size = ext2_sb_blocksize(fs->sb);
     uint64_t start_block = start / block_size;
     char localbuf[((len / block_size) + 1) * block_size];
     int i, ret;

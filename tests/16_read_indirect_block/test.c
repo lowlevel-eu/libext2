@@ -19,6 +19,8 @@ int run_test(ext2_fs_t* fs)
     char* filename;
     int i;
 
+    ext2_fs_mount(fs);
+
     ext2_superblock_t sb;
     if (!ext2_sb_read(fs, &sb)) {
         test_interror("Fehler beim Lesen des Superblocks");

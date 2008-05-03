@@ -13,6 +13,8 @@ int run_test(ext2_fs_t* fs)
     ext2_inode_t rootdir;
     ext2_superblock_t sb;
 
+    ext2_fs_mount(fs);
+
     if (!ext2_sb_read(fs, &sb)) {
         test_interror("Superblock konnte nicht eingelesen werden");
     }
