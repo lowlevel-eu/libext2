@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define _GNU_SOURCE
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +43,7 @@
 
 extern jmp_buf exit_test;
 extern char* test_name;
+extern char* image_name;
 
 __attribute__((noreturn)) void test_error(const char* fmt, ...)
 {
@@ -68,4 +71,14 @@ __attribute__((noreturn)) void test_interror(const char* fmt, ...)
     puts("");
 
     longjmp(exit_test, 2);
+}
+
+void test_fsck()
+{
+    char* cmdline;
+    asprintf(&cmdline, "/sbin/e2fsck -fn %s > /dev/null 2>&1", image_name);
+    if (system(cmdline)) {
+        test_error("fsck hat einen Fehler gemeldet");
+    }
+    free(cmdline);
 }

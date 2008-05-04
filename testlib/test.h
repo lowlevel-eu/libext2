@@ -50,5 +50,8 @@ __attribute__((noreturn)) void test_error(const char* fmt, ...);
  */
 __attribute__((noreturn)) void test_interror(const char* fmt, ...);
 
+/// Prueft das Dateisystem des aktuellen Images
+void test_fsck();
+
 #endif
 

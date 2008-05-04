@@ -44,6 +44,7 @@
 
 jmp_buf exit_test;
 char* test_name;
+char* image_name;
 
 static int image_fd;
 
@@ -83,6 +84,7 @@ int main(int argc, char* argv[])
     signal(SIGSEGV, sigsegv_handler);
 
     test_name = argv[0];
+    image_name = argv[1];
     printf("Test %s...", test_name);
 
     switch (setjmp(exit_test)) {
