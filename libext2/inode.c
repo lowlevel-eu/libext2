@@ -104,6 +104,12 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     uint64_t block_offset = get_block_offset(fs, inode, block);
     size_t   block_size = ext2_sb_blocksize(fs->sb);
 
+    // Ein paar Nullen fuer Sparse Files
+    if (block_offset == 0) {
+        memset(buf, 0, block_size);
+        return 1;
+    }
+
     if (!fs->dev_read(block_offset, block_size, buf, fs->dev_private)) {
         return 0;
     }
