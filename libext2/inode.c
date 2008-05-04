@@ -90,10 +90,14 @@ static uint64_t get_block_offset(
         return table[index];
     }
 
-    if (block < 12) {
+    if ((block < 12) && (block < (256 + 12))) {
         block_nr = inode->blocks[block];
-    } else {
+    } else if (block < (256 + 12)) {
         block_nr = get_indirect_block_nr(block - 12, inode->blocks[12]);
+    } else {
+        block -= 12 + 256;
+        block_nr = get_indirect_block_nr(block % 256,
+            get_indirect_block_nr(block / 256, inode->blocks[13]));
     }
     return block_size * block_nr;
 }
