@@ -17,11 +17,8 @@ int run_test(ext2_fs_t* fs)
     uint32_t pattern[1024];
     int i;
 
-    ext2_fs_mount(fs);
-
-    ext2_superblock_t sb;
-    if (!ext2_sb_read(fs, &sb)) {
-        test_interror("Fehler beim Lesen des Superblocks");
+    if (!ext2_fs_mount(fs)) {
+        test_interror("Mounten fehlgeschlagen");
     }
 
     if (!ext2_inode_read(fs, 1, &rootdir)) {
@@ -54,7 +51,7 @@ int run_test(ext2_fs_t* fs)
             test_error("Block %d konnte nicht eingelesen werden", i);
         }
 
-        if (memcmp(pattern, buf, ext2_sb_blocksize(&sb))) {
+        if (memcmp(pattern, buf, ext2_sb_blocksize(fs->sb))) {
             test_error("Block %d entspricht nicht dem Muster 0xd00fc0de", i);
         }
     }
@@ -68,7 +65,7 @@ int run_test(ext2_fs_t* fs)
             test_error("Block %d konnte nicht eingelesen werden", i);
         }
 
-        if (memcmp(pattern, buf, ext2_sb_blocksize(&sb))) {
+        if (memcmp(pattern, buf, ext2_sb_blocksize(fs->sb))) {
             test_error("Block %d entspricht nicht dem Muster 0x1337d00d", i);
         }
     }
