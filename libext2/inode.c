@@ -44,7 +44,6 @@ int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
         sizeof(ext2_blockgroup_t), sizeof(ext2_blockgroup_t), bg,
         fs->dev_private))
     {
-        puts("blub");
         return 0;
     }
 
@@ -92,14 +91,14 @@ static uint64_t get_block_offset(
         return table[index];
     }
 
-    if ((block < 12) && (block < (256 + 12))) {
+    if ((block < 12) && (block < ((block_size / 4) + 12))) {
         block_nr = inode->blocks[block];
-    } else if (block < (256 + 12)) {
+    } else if (block < ((block_size / 4) + 12)) {
         block_nr = get_indirect_block_nr(block - 12, inode->blocks[12]);
     } else {
-        block -= 12 + 256;
-        block_nr = get_indirect_block_nr(block % 256,
-            get_indirect_block_nr(block / 256, inode->blocks[13]));
+        block -= 12 + (block_size / 4);
+        block_nr = get_indirect_block_nr(block % (block_size / 4),
+            get_indirect_block_nr(block / (block_size / 4), inode->blocks[13]));
     }
     return block_size * block_nr;
 }
