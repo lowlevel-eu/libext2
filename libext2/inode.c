@@ -40,9 +40,11 @@
 int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
 {
     if (!fs->dev_read(
-        (2 * ext2_sb_blocksize(fs->sb)) + group_nr * sizeof(ext2_blockgroup_t),
-        sizeof(ext2_blockgroup_t), bg, fs->dev_private))
+        ((fs->sb_block + 1) * ext2_sb_blocksize(fs->sb)) + group_nr *
+        sizeof(ext2_blockgroup_t), sizeof(ext2_blockgroup_t), bg,
+        fs->dev_private))
     {
+        puts("blub");
         return 0;
     }
 

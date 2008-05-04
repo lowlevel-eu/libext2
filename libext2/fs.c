@@ -67,6 +67,10 @@ int ext2_fs_mount(ext2_fs_t* fs)
     if (!ext2_sb_read(fs, fs->sb)) {
         return 0;
     }
+    
+    // Die Blocknummer in der der Superblock liegt, variiert je nach
+    // Blockgroesse, da der offset fix 1024 ist.
+    fs->sb_block = (ext2_sb_blocksize(fs->sb) > 1024 ? 0 : 1);
 
     return fs_check_fast(fs);
 }
