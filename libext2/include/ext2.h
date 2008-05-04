@@ -70,7 +70,8 @@ typedef struct {
      *
      * @return 1 wenn das Schreiben geklappt hat, 0 sonst
      */
-    int (*dev_write)(uint64_t start, size_t size, void* source, void* prv);
+    int (*dev_write)(uint64_t start, size_t size, const void* source,
+        void* prv);
 
     /// Private Daten zum Zugriff auf den Datentraeger
     void* dev_private;

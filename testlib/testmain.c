@@ -56,7 +56,7 @@ static int dev_read(uint64_t start, size_t size, void* dest, void* prv)
     return (read(image_fd, dest, size) == size);
 }
 
-static int dev_write(uint64_t start, size_t size, void* dest, void* prv)
+static int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
 {
     if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
         return 0;
