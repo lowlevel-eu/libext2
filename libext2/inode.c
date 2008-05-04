@@ -68,12 +68,11 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
     return 1;
 }
 
-int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
-    void* buf)
+static uint64_t get_block_offset(
+    ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block)
 {
     size_t   block_size;
     uint64_t block_nr;
-    uint64_t block_offset;
 
     block_size = ext2_sb_blocksize(fs->sb);
 
@@ -96,10 +95,29 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     } else {
         block_nr = get_indirect_block_nr(block - 12, inode->blocks[12]);
     }
+    return block_size * block_nr;
+}
 
-    block_offset = block_size * block_nr;
+int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
+    void* buf)
+{
+    uint64_t block_offset = get_block_offset(fs, inode, block);
+    size_t   block_size = ext2_sb_blocksize(fs->sb);
 
     if (!fs->dev_read(block_offset, block_size, buf, fs->dev_private)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+int ext2_inode_writeblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
+    void* buf)
+{
+    uint64_t block_offset = get_block_offset(fs, inode, block);
+    size_t   block_size = ext2_sb_blocksize(fs->sb);
+
+    if (!fs->dev_write(block_offset, block_size, buf, fs->dev_private)) {
         return 0;
     }
 

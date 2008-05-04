@@ -45,8 +45,7 @@
 jmp_buf exit_test;
 char* test_name;
 char* image_name;
-
-static int image_fd;
+int image_fd;
 
 static int dev_read(uint64_t start, size_t size, void* dest, void* prv)
 {

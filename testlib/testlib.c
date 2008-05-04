@@ -39,11 +39,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <unistd.h>
 #include "test.h"
 
 extern jmp_buf exit_test;
 extern char* test_name;
 extern char* image_name;
+extern int image_fd;
 
 __attribute__((noreturn)) void test_error(const char* fmt, ...)
 {
@@ -76,6 +78,9 @@ __attribute__((noreturn)) void test_interror(const char* fmt, ...)
 void test_fsck()
 {
     char* cmdline;
+
+    fsync(image_fd);
+
     asprintf(&cmdline, "/sbin/e2fsck -fn %s > /dev/null 2>&1", image_name);
     if (system(cmdline)) {
         test_error("fsck hat einen Fehler gemeldet");

@@ -1,0 +1,77 @@
+#include <ext2.h>
+#include <string.h>
+#include <stdio.h>
+#include <test.h>
+
+/**
+ * Test:  overwrite_block
+ * Autor: Kevin Wolf
+ * Zweck: Die Daten in einer Datei ueberschreiben
+ */
+int run_test(ext2_fs_t* fs)
+{
+    ext2_inode_t rootdir;
+    ext2_inode_t testfile;
+    ext2_dirent_t* dirent;
+    char buf[4096];
+    uint32_t pattern[1024];
+    int i;
+
+    ext2_fs_mount(fs);
+
+    ext2_superblock_t sb;
+    if (!ext2_sb_read(fs, &sb)) {
+        test_interror("Fehler beim Lesen des Superblocks");
+    }
+
+    if (!ext2_inode_read(fs, 1, &rootdir)) {
+        test_interror("Fehler beim Lesen des Rootverzeichnis-Inode");
+    }
+
+    dirent = ext2_dir_get(fs, &rootdir, "testfile");
+    if (!dirent) {
+        test_error("Datei /testfile wurde nicht gefunden");
+    }
+
+    if (!ext2_inode_read(fs, dirent->inode - 1, &testfile)) {
+        test_interror("Fehler beim Lesen des Testdatei-Inode");
+    }
+
+    for (i = 0; i < 1024; i++) {
+        pattern[i] = 0xd00fc0de;
+    }
+
+    for (i = 3; i < 7; i++) {
+        if (!ext2_inode_writeblk(fs, &testfile, i, &buf)) {
+            test_error("Block %d konnte nicht geschrieben werden", i);
+        }
+    }
+
+    test_fsck();
+
+    for (i = 3; i < 7; i++) {
+        if (!ext2_inode_readblk(fs, &testfile, i, &pattern)) {
+            test_error("Block %d konnte nicht eingelesen werden", i);
+        }
+
+        if (memcmp(pattern, buf, ext2_sb_blocksize(&sb))) {
+            test_error("Block %d entspricht nicht dem Muster 0xd00fc0de", i);
+        }
+    }
+
+    for (i = 0; i < 1024; i++) {
+        pattern[i] = 0x1337d00d;
+    }
+
+    for (i = 0; i < 64; i++, i = i == 3 ? 7 : i) {
+        if (!ext2_inode_readblk(fs, &testfile, i, &buf)) {
+            test_error("Block %d konnte nicht eingelesen werden", i);
+        }
+
+        if (memcmp(pattern, buf, ext2_sb_blocksize(&sb))) {
+            test_error("Block %d entspricht nicht dem Muster 0x1337d00d", i);
+        }
+    }
+
+    return 0;
+}
