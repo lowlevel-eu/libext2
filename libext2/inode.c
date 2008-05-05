@@ -140,7 +140,7 @@ static uint64_t get_block_offset(
 
     if ((block < 12) && (block < ((block_size / 4) + 12))) {
         block_nr = inode->blocks[block];
-        if (block_nr == 0) {
+        if ((block_nr == 0) && alloc) {
             block_nr = inode->blocks[block] = block_alloc(fs);
         }
     } else if (block < ((block_size / 4) + 12)) {
