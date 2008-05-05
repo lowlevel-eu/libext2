@@ -43,8 +43,20 @@ int run_test(ext2_fs_t* fs)
 
     ext2_inode_readdata(fs, &rootdir, blksize / 2, blksize, databuf);
     if (memcmp(databuf, blkbuf + blksize / 2, blksize)) {
-        test_error("databuf != blkbuf fuer blksize, nicht aligned");
+        test_error("databuf != blkbuf fuer blksize, start und ende nicht "
+            "aligned");
     }
+
+    ext2_inode_readdata(fs, &rootdir, blksize / 2, blksize / 2, databuf);
+    if (memcmp(databuf, blkbuf + blksize / 2, blksize / 2)) {
+        test_error("databuf != blkbuf fuer blksize, start nicht aligned");
+    }
+
+    ext2_inode_readdata(fs, &rootdir, blksize, blksize / 2, databuf);
+    if (memcmp(databuf, blkbuf + blksize, blksize / 2)) {
+        test_error("databuf != blkbuf fuer blksize, ende nicht aligned");
+    }
+
 
     memset(databuf, 0xff, 42);
     memset(databuf + 42 + 64, 0xee, blksize - 42 - 64);
