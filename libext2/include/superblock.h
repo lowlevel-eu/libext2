@@ -237,5 +237,11 @@ int ext2_sb_copy_count(ext2_superblock_t* sb);
  */
 int ext2_sb_compare(ext2_superblock_t* a, ext2_superblock_t* b);
 
+/**
+ * Superblockinhalt auf der Standardausgabe zu debuggzwecken anzeigen
+ *
+ * @param sb Pointer auf den Superblock
+ */
+void ext2_sb_dump(ext2_superblock_t* sb);
 #endif
 

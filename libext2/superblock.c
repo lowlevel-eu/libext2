@@ -32,6 +32,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdio.h>
 
 #include <stdio.h>
 #include "ext2.h"
@@ -182,4 +183,23 @@ int ext2_sb_compare(ext2_superblock_t* a, ext2_superblock_t* b)
         abcmp(revision) && abcmp(inode_size) && abcmp(features_compat) &&
         abcmp(features_incompat) && abcmp(features_ro));
 }
+
+void ext2_sb_dump(ext2_superblock_t* sb)
+{
+    printf("  sb->inode_count = %d\n", sb->inode_count);
+    printf("  sb->block_count = %d\n", sb->block_count);
+    printf("  sb->free_blocks = %d\n", sb->free_blocks);
+    printf("  sb->free_inodes = %d\n", sb->free_inodes);
+    printf("  sb->first_data_block = %d\n", sb->first_data_block);
+    printf("  sb->block_size = %d\n", sb->block_size);
+    printf("  sb->blocks_per_group = %d\n", sb->blocks_per_group);
+    printf("  sb->inodes_per_group = %d\n", sb->inodes_per_group);
+    printf("  sb->magic = %d\n", sb->magic);
+    printf("  sb->revision = %d\n", sb->revision);
+    printf("  sb->inode_size = %d\n", sb->inode_size);
+    printf("  sb->features_compat = %d\n", sb->features_compat);
+    printf("  sb->features_incompat = %d\n", sb->features_incompat);
+    printf("  sb->features_ro = %d\n", sb->features_ro);
+}
+
 
