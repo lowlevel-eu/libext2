@@ -21,7 +21,7 @@ ALL_OBJS+= $(TESTLIB_OBJ)
 
 libtest.a: CFLAGS+= -I libext2/include
 libtest.a: $(TESTLIB_OBJ)
-	ar rs $@ $^
+	@ar rs $@ $^
 
 define TEST_template
 $(1)_SRC := $(wildcard tests/$(1)/*.c)
@@ -29,7 +29,7 @@ $(1)_OBJ := $$(call OBJECT_FILES,$$($(1)_SRC))
 ALL_OBJS+= $$($(1)_OBJ)
 tests/$(1)/test: CFLAGS+= -I libext2/include -I testlib -L .
 tests/$(1)/test: libext2.a libtest.a $$($(1)_OBJ)
-	$(CC) -L . -o tests/$(1)/test $$($(1)_OBJ) -lext2 -ltest
+	@$(CC) -L . -o tests/$(1)/test $$($(1)_OBJ) -lext2 -ltest
 
 run_tests/$(1)/test: tests/$(1)/test
 	@bzcat tests/$(1)/image.bz2 > tests/$(1)/img.run
@@ -52,7 +52,7 @@ LIBEXT2_OBJ= $(call OBJECT_FILES,$(LIBEXT2_SRC))
 ALL_OBJS+= $(LIBEXT2_OBJ)
 
 libext2.a: $(LIBEXT2_OBJ)
-	ar rs $@ $^
+	@ar rs $@ $^
 libext2: libext2.a
 
 
@@ -62,3 +62,6 @@ libext2: libext2.a
 all: libext2 build_tests
 clean:
 	@rm -f $(ALL_OBJS) $(TESTS:%=tests/%/test) libtest.a libext2.a
+
+%.o: %.c
+	@$(CC) $(CFLAGS) -c -o $@ $^
