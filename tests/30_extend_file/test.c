@@ -43,6 +43,11 @@ int run_test(ext2_fs_t* fs)
             test_error("Block %d konnte nicht geschrieben werden", i);
         }
     }
+    testfile.size = ext2_sb_blocksize(fs->sb) * 7;
+
+    if (!ext2_inode_update(fs, dirent->inode - 1, &testfile)) {
+        test_interror("Fehler beim Schreiben des Testdatei-Inode");
+    }
 
     test_fsck();
 
