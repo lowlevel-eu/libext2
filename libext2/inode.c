@@ -194,7 +194,7 @@ int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
 {
     size_t block_size = ext2_sb_blocksize(fs->sb);
     uint64_t start_block = start / block_size;
-    uint64_t end_block = (start + len) / block_size;
+    uint64_t end_block = (start + len - 1) / block_size;
     size_t block_count = end_block - start_block + 1;
     char localbuf[block_count * block_size];
     int i, ret;
