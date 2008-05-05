@@ -69,18 +69,65 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
     return 1;
 }
 
+static uint64_t block_alloc(ext2_fs_t* fs)
+{
+    uint32_t bitmap[fs->sb->blocks_per_group];
+    uint64_t bitmap_offset;
+    uint32_t i, j;
+
+    ext2_blockgroup_t bg;
+    ext2_bg_read(fs, 0, &bg);
+
+    // Bitmap laden
+    bitmap_offset = ext2_sb_blocksize(fs->sb) * bg.block_bitmap;
+    if (!fs->dev_read(bitmap_offset, 4 * fs->sb->blocks_per_group, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    // Freies Bit suchen
+    for (i = 0; i < fs->sb->blocks_per_group; i++) {
+        if (bitmap[i] != ~0) {
+            for (j = 0; j < 32; j++) {
+                if ((bitmap[i] & (1 << j)) == 0) {
+                    goto found;
+                }
+            }
+        }
+    }
+
+    return 0;
+
+found:
+    // Als besetzt markieren
+    bitmap[i] |= (1 << j);
+    if (!fs->dev_write(bitmap_offset, 4 * fs->sb->blocks_per_group, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    fs->sb->free_blocks--;
+    ext2_sb_update(fs, fs->sb);
+
+    return (i * 32) + j;
+}
+
 static uint64_t get_block_offset(
-    ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block)
+    ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block, int alloc)
 {
     size_t   block_size;
     uint64_t block_nr;
 
     block_size = ext2_sb_blocksize(fs->sb);
 
-    // TODO Doppelt und dreifach indirekte Blocks
+    // TODO Doppelt und dreifach indirekte Blocks allozieren
     uint64_t get_indirect_block_nr(uint64_t index, uint64_t table_block)
     {
         uint32_t table[block_size / 4];
+
+        // TODO table_block == 0 => return 0
 
         if (!fs->dev_read(table_block * block_size, block_size, table,
             fs->dev_private))
@@ -93,6 +140,9 @@ static uint64_t get_block_offset(
 
     if ((block < 12) && (block < ((block_size / 4) + 12))) {
         block_nr = inode->blocks[block];
+        if (block_nr == 0) {
+            block_nr = inode->blocks[block] = block_alloc(fs);
+        }
     } else if (block < ((block_size / 4) + 12)) {
         block_nr = get_indirect_block_nr(block - 12, inode->blocks[12]);
     } else {
@@ -106,7 +156,7 @@ static uint64_t get_block_offset(
 int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     void* buf)
 {
-    uint64_t block_offset = get_block_offset(fs, inode, block);
+    uint64_t block_offset = get_block_offset(fs, inode, block, 0);
     size_t   block_size = ext2_sb_blocksize(fs->sb);
 
     // Ein paar Nullen fuer Sparse Files
@@ -125,8 +175,12 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
 int ext2_inode_writeblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     void* buf)
 {
-    uint64_t block_offset = get_block_offset(fs, inode, block);
+    uint64_t block_offset = get_block_offset(fs, inode, block, 1);
     size_t   block_size = ext2_sb_blocksize(fs->sb);
+
+    if (block_offset == 0) {
+        return 0;
+    }
 
     if (!fs->dev_write(block_offset, block_size, buf, fs->dev_private)) {
         return 0;
