@@ -106,6 +106,8 @@ static uint64_t block_alloc(ext2_fs_t* fs)
     uint32_t bitmap[fs->sb->blocks_per_group];
     uint64_t bitmap_offset;
     uint32_t i, j;
+    size_t   block_size = ext2_sb_blocksize(fs->sb);
+    uint8_t  buf[block_size];
 
     ext2_blockgroup_t bg;
     ext2_bg_read(fs, 0, &bg);
@@ -132,6 +134,15 @@ static uint64_t block_alloc(ext2_fs_t* fs)
     return 0;
 
 found:
+
+    // Mit Nullen initialisieren
+    memset(buf, 0, block_size);
+    if (!fs->dev_write((i * 32 + j) * block_size, block_size, buf,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
     // Als besetzt markieren
     bitmap[i] |= (1 << j);
     if (!fs->dev_write(bitmap_offset, 4 * fs->sb->blocks_per_group, bitmap,
@@ -170,6 +181,16 @@ static uint64_t get_block_offset(
             return 0;
         }
 
+        if ((table[index] == 0) && alloc) {
+            table[index] = block_alloc(fs);
+            inode->block_count += block_size / 512;
+            if (!fs->dev_write(table_block * block_size, block_size, table,
+                fs->dev_private))
+            {
+                return 0;
+            }
+        }
+
         return table[index];
     }
 
@@ -180,11 +201,21 @@ static uint64_t get_block_offset(
             inode->block_count += block_size / 512;
         }
     } else if (block < ((block_size / 4) + 12)) {
-        block_nr = get_indirect_block_nr(block - 12, inode->blocks[12]);
+        if (inode->blocks[12] == 0) {
+            inode->blocks[12] = block_alloc(fs);
+            inode->block_count += block_size / 512;
+        }
+        block_nr =
+            get_indirect_block_nr(block - 12, inode->blocks[12]);
     } else {
+        if (inode->blocks[13] == 0) {
+            inode->blocks[13] = block_alloc(fs);
+            inode->block_count += block_size / 512;
+        }
         block -= 12 + (block_size / 4);
         block_nr = get_indirect_block_nr(block % (block_size / 4),
-            get_indirect_block_nr(block / (block_size / 4), inode->blocks[13]));
+            get_indirect_block_nr(block / (block_size / 4),
+            inode->blocks[13]));
     }
     return block_size * block_nr;
 }
@@ -220,6 +251,10 @@ int ext2_inode_writeblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
 
     if (!fs->dev_write(block_offset, block_size, buf, fs->dev_private)) {
         return 0;
+    }
+
+    if (block * block_size > inode->size) {
+        inode->size = block * block_size;
     }
 
     return 1;

@@ -129,7 +129,6 @@ int ext2_sb_update(ext2_fs_t* fs, ext2_superblock_t* sb)
         start = i == 0 ? 1024 : (fs->sb->first_data_block + i * fs->sb->
             blocks_per_group) * ext2_sb_blocksize(fs->sb);
 
-        printf("Schreibe SB an %#lx (%d frei)\n", start, sb->free_blocks);
         if (!fs->dev_write(start, sizeof(ext2_superblock_t), sb,
             fs->dev_private))
         {
