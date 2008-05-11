@@ -293,3 +293,36 @@ int ext2_inode_readdata(
 
     return 0;
 }
+
+int ext2_inode_writedata(
+    ext2_inode_t* inode, uint64_t start, size_t len, void* buf)
+{
+    size_t block_size = ext2_sb_blocksize(inode->fs->sb);
+    uint64_t start_block = start / block_size;
+    uint64_t end_block = (start + len - 1) / block_size;
+    size_t block_count = end_block - start_block + 1;
+    char localbuf[block_count * block_size];
+    int i, ret;
+
+    for (i = 0; i < block_count; i++) {
+        ret = ext2_inode_readblk(inode, start_block + i,
+            localbuf + i * block_size);
+
+        if (!ret) {
+            return 0;
+        }
+    }
+
+    memcpy(localbuf + (start % block_size), buf, len);
+
+    for (i = 0; i < block_count; i++) {
+        ret = ext2_inode_writeblk(inode, start_block + i,
+            localbuf + i * block_size);
+
+        if (!ret) {
+            return 0;
+        }
+    }
+
+    return 1;
+}

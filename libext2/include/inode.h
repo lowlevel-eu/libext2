@@ -140,5 +140,7 @@ int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf);
 int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf);
 int ext2_inode_readdata(
     ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
+int ext2_inode_writedata(
+    ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
 
 #endif
