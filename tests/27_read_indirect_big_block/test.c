@@ -56,7 +56,7 @@ int run_test(ext2_fs_t* fs)
     }
 
     for (i = 0; i < 460; i++) {
-        if (!ext2_inode_readblk(fs, &testfile, i, &buf)) {
+        if (!ext2_inode_readblk(&testfile, i, &buf)) {
             test_error("Block %d konnte nicht eingelesen werden", i);
         }
 

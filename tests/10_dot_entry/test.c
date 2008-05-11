@@ -19,7 +19,7 @@ int run_test(ext2_fs_t* fs)
         test_interror("Inode konnte nicht eingelesen werden");
     }
 
-    if (!ext2_inode_readblk(fs, &rootdir, 0, &buf)) {
+    if (!ext2_inode_readblk(&rootdir, 0, &buf)) {
         test_interror("Block konnte nicht eingelesen werden");
     }
 

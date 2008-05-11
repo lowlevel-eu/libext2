@@ -15,7 +15,6 @@ int run_test(ext2_fs_t* fs)
     ext2_dirent_t* dirent;
 
     ext2_fs_mount(fs);
-    rootdir.size = 0;
 
     if (!ext2_inode_read(fs, 1, &rootdir)) {
         test_interror("Inode konnte nicht eingelesen werden");
@@ -37,7 +36,7 @@ int run_test(ext2_fs_t* fs)
     memset(buf, 0xFF, blksize);
     memset(cmp_buf, 0x0, blksize);
 
-    ext2_inode_readdata(fs, &testfile, 0, blksize, buf);
+    ext2_inode_readdata(&testfile, 0, blksize, buf);
     if (memcmp(buf, cmp_buf, blksize)) {
         test_error("buf != cmp_buf");
     }

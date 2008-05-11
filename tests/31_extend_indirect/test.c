@@ -40,19 +40,19 @@ int run_test(ext2_fs_t* fs)
     }
 
     for (i = 0; i < 64; i++) {
-        if (!ext2_inode_writeblk(fs, &testfile, i, &buf)) {
+        if (!ext2_inode_writeblk(&testfile, i, &buf)) {
             test_error("Block %d konnte nicht geschrieben werden", i);
         }
     }
 
-    if (!ext2_inode_update(fs, dirent->inode - 1, &testfile)) {
+    if (!ext2_inode_update(&testfile)) {
         test_interror("Fehler beim Schreiben des Testdatei-Inode");
     }
 
     test_fsck();
 
     for (i = 0; i < 64; i++) {
-        if (!ext2_inode_readblk(fs, &testfile, i, &pattern)) {
+        if (!ext2_inode_readblk(&testfile, i, &pattern)) {
             test_error("Block %d konnte nicht eingelesen werden", i);
         }
 
