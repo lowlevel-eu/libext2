@@ -249,7 +249,7 @@ int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf)
     return 1;
 }
 
-int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
+static int writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
 {
     ext2_fs_t* fs = inode->fs;
 
@@ -264,11 +264,19 @@ int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
         return 0;
     }
 
+    return 1;
+}
+
+int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
+{
+    size_t block_size = ext2_sb_blocksize(inode->fs->sb);
+    int ret = writeblk(inode, block, buf);
+
     if (block * block_size > inode->raw.size) {
         inode->raw.size = block * block_size;
     }
 
-    return 1;
+    return ret;
 }
 
 int ext2_inode_readdata(
@@ -316,12 +324,15 @@ int ext2_inode_writedata(
     memcpy(localbuf + (start % block_size), buf, len);
 
     for (i = 0; i < block_count; i++) {
-        ret = ext2_inode_writeblk(inode, start_block + i,
-            localbuf + i * block_size);
+        ret = writeblk(inode, start_block + i, localbuf + i * block_size);
 
         if (!ret) {
             return 0;
         }
+    }
+
+    if (start + len > inode->raw.size) {
+        inode->raw.size = start + len;
     }
 
     return 1;
