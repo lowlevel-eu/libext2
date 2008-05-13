@@ -164,8 +164,8 @@ found:
 
     bg.free_blocks--;
     ext2_bg_update(fs, 0, &bg);
-
-    return (i * 32) + j;
+    
+    return (i * 32) + j + fs->sb->first_data_block;
 }
 
 static uint64_t get_block_offset(
