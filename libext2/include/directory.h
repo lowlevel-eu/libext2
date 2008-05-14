@@ -65,6 +65,10 @@ void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
 ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
     char* name);
 
+/// Sucht einen Inode nach dem Pfad
+int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode);
+
+
 /**
  * Nullterminierten String allozieren und mit dem Namen eines
  * Verzeichniseintrags fuellen

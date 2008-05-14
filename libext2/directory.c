@@ -103,3 +103,37 @@ char* ext2_dir_alloc_name(ext2_dirent_t* dirent)
     buf[dirent->name_len] = '\0';
     return buf;
 }
+
+int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode)
+{
+    // Puffer um den Pfad veraendern zu koennen
+    char pb[strlen(path) + 1];
+    const char* delim = "/";
+    char* part;
+    uint64_t parent_no = 1;
+    ext2_inode_t parent;
+    ext2_dirent_t* dirent;
+
+    strcpy(pb, path);
+    part = strtok(pb, delim);
+    
+    while (part) {
+        if (strlen(part) != 0) {
+            if (!ext2_inode_read(fs, parent_no, &parent)) {
+                return 0;
+            }
+
+            dirent = ext2_dir_get(fs, &parent, part);
+            if (!dirent) {
+                return 0;
+            }
+            
+            parent_no = dirent->inode - 1;
+            free(dirent);
+        }
+        part = strtok(NULL, delim);
+    }
+
+    return ext2_inode_read(fs, parent_no, inode);
+}
+
