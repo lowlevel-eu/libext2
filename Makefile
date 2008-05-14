@@ -8,6 +8,24 @@ TESTS= $(notdir $(wildcard tests/*))
 
 CFLAGS += -Wall -Werror -O2 -g
 
+##############################################################################
+# Targets fuer etool
+##############################################################################
+# Quelldateien
+ETOOL_SRC= $(wildcard etool/*.c)
+
+# Objektdateien
+ETOOL_OBJ= $(call OBJECT_FILES,$(ETOOL_SRC))
+ALL_OBJS+= $(ETOOL_OBJ)
+
+
+etool: etool/etool
+
+etool/etool: CFLAGS+= -I libext2/include -I etool/include
+etool/etool: libext2.a $(ETOOL_OBJ)
+	@$(CC) -L . -o etool/etool $(ETOOL_OBJ) -lext2
+
+	
 
 ##############################################################################
 # Targets fuer Tests
@@ -61,7 +79,7 @@ libext2: libext2.a
 ##############################################################################
 all: libext2 build_tests
 clean:
-	@rm -f $(ALL_OBJS) $(TESTS:%=tests/%/test) libtest.a libext2.a
+	@rm -f $(ALL_OBJS) $(TESTS:%=tests/%/test) libtest.a libext2.a etool/etool
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -c -o $@ $^
