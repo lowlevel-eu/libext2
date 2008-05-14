@@ -55,8 +55,8 @@ static int handle_dirent(ext2_dirent_t* dirent, void* prv)
     }
 
     if (!ext2_inode_read(fs, dirent->inode, &inode)) {
-        fprintf(stderr, "Inode von '%s'konnte nicht eingelesen werden!\n",
-            name);
+        fprintf(stderr, "Fehler: Inode von '%s'konnte nicht eingelesen werden!"
+            "\n", name);
         result = -1;
         goto end;
     }
@@ -79,7 +79,12 @@ static void ls(const char* path)
     ext2_inode_t inode;
 
     if (!ext2_dir_find(fs, path, &inode)) {
-        fprintf(stderr, "Pfad nicht gefunden!\n");
+        fprintf(stderr, "Fehler: Pfad nicht gefunden!\n");
+        return;
+    }
+
+    if (!EXT2_INODE_IS_DIR(&inode)) {
+        fprintf(stderr, "Fehler: Kein Verzeichnis!\n");
         return;
     }
 
@@ -108,7 +113,7 @@ int etool_ls(int argc, char* argv[])
 
             case '?':
             default:
-                fprintf(stderr, "Unbekannter Parameter\n");
+                fprintf(stderr, "Fehler: Unbekannter Parameter\n");
                 return -1;
 
         }

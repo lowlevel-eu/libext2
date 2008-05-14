@@ -43,7 +43,12 @@ static void cat(const char* path)
     ext2_inode_t inode;
 
     if (!ext2_dir_find(fs, path, &inode)) {
-        fprintf(stderr, "Pfad nicht gefunden!\n");
+        fprintf(stderr, "Fehler: Pfad nicht gefunden!\n");
+        return;
+    }
+
+    if (!EXT2_INODE_IS_FILE(&inode)) {
+        fprintf(stderr, "Fehler: Keine Datei!\n");
         return;
     }
 
@@ -52,7 +57,7 @@ static void cat(const char* path)
         int i;
 
         if (ext2_inode_readdata(&inode, 0, inode.raw.size, buf)) {
-            fprintf(stderr, "Fehler beim Einlesen der Daten\n");
+            fprintf(stderr, "Fehler: Einlesen der Daten fehlgeschlagen!\n");
             return;
         }
 
