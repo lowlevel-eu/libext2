@@ -35,6 +35,7 @@
 
 #include <string.h>
 #include "ext2.h"
+#include <stdio.h>
 
 struct private_dir_get {
     char* name;
@@ -116,7 +117,7 @@ int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode)
 
     strcpy(pb, path);
     part = strtok(pb, delim);
-    
+
     while (part) {
         if (strlen(part) != 0) {
             if (!ext2_inode_read(fs, parent_no, &parent)) {
@@ -127,7 +128,7 @@ int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode)
             if (!dirent) {
                 return 0;
             }
-            
+
             parent_no = dirent->inode - 1;
             free(dirent);
         }
@@ -137,3 +138,62 @@ int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode)
     return ext2_inode_read(fs, parent_no, inode);
 }
 
+static size_t dirent_size(size_t name_len)
+{
+    size_t size = name_len + sizeof(ext2_dirent_t);
+
+    // Auf 4 runden
+    if ((size % 4) != 0) {
+        size += 4 - (size % 4);
+    }
+
+    return size;
+}
+
+
+int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
+{
+    ext2_dirent_t* entry;
+    ext2_dirent_t* newentry;
+    char buf[dir->raw.size];
+    uint64_t pos = 0;
+    size_t newentry_len = dirent_size(strlen(name));
+    size_t entry_len;
+
+    ext2_inode_readdata(dir, 0, dir->raw.size, buf);
+    while (pos < dir->raw.size) {
+        entry = (ext2_dirent_t*) &buf[pos];
+        entry_len = dirent_size(entry->name_len);
+
+        if (entry->record_len == 0) {
+            // TODO: Was geschieht mit dem kaputten FS?
+            break;
+        }
+
+        // Pruefen ob dieser Eintrag soviel zu lang ist, wie wir speicher
+        // benoetigen
+        if (entry->record_len - entry_len >= newentry_len) {
+            newentry = (ext2_dirent_t*) &buf[pos + entry_len];
+
+            // Neuen Eintrag befuellen
+            newentry->name_len = strlen(name);
+            memcpy(newentry->name, name, newentry->name_len);
+            newentry->inode = inode->number + 1;
+            newentry->record_len = entry->record_len - entry_len;
+
+            // Alten Eintrag kuerzen
+            entry->record_len = entry_len;
+
+            ext2_inode_writedata(dir, pos, entry_len + newentry->record_len,
+                buf + pos);
+
+            // Referenzzaehler erhoehen
+            inode->raw.link_count++;
+            return 1;
+        }
+        pos += entry->record_len;
+    }
+
+    // TODO: Verzeichnis vergroessern
+    return 0;
+}

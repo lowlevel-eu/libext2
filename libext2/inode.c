@@ -109,6 +109,70 @@ int ext2_inode_update(ext2_inode_t* inode)
     return 1;
 }
 
+static uint64_t inode_alloc(ext2_fs_t* fs)
+{
+    uint32_t bitmap[fs->sb->inodes_per_group / 32];
+    uint64_t bitmap_offset;
+    uint32_t i, j;
+
+    uint32_t bgnum = 0;
+    ext2_blockgroup_t bg;
+    ext2_bg_read(fs, bgnum, &bg);
+
+    // Bitmap laden
+    bitmap_offset = ext2_sb_blocksize(fs->sb) * bg.inode_bitmap;
+    if (!fs->dev_read(bitmap_offset, fs->sb->inodes_per_group / 8, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    // Freies Bit suchen
+    for (i = 0; i < fs->sb->inodes_per_group / 32; i++) {
+        if (bitmap[i] != ~0) {
+            for (j = 0; j < 32; j++) {
+                if ((bitmap[i] & (1 << j)) == 0) {
+                    goto found;
+                }
+            }
+        }
+    }
+
+    return 0;
+
+found:
+
+    // Als besetzt markieren
+    bitmap[i] |= (1 << j);
+    if (!fs->dev_write(bitmap_offset, fs->sb->blocks_per_group / 8, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    fs->sb->free_inodes--;
+    ext2_sb_update(fs, fs->sb);
+
+    bg.free_inodes--;
+    ext2_bg_update(fs, 0, &bg);
+    return (i * 32) + j + 1;
+}
+
+int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode)
+{
+    uint64_t number = inode_alloc(fs);
+
+    if (!number) {
+        return 0;
+    }
+
+    inode->number = number - 1;
+    inode->fs = fs;
+
+    memset(&inode->raw, 0, sizeof(inode->raw));
+    return 1;
+}
+
 static uint64_t block_alloc(ext2_fs_t* fs)
 {
     uint32_t bitmap[fs->sb->blocks_per_group];
@@ -164,7 +228,7 @@ found:
 
     bg.free_blocks--;
     ext2_bg_update(fs, 0, &bg);
-    
+
     return (i * 32) + j + fs->sb->first_data_block;
 }
 
