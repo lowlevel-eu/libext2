@@ -79,7 +79,7 @@ static void ls(const char* path)
     ext2_inode_t inode;
 
     if (!ext2_dir_find(fs, path, &inode)) {
-        fprintf(stderr, "Pfad nicht gefunden!");
+        fprintf(stderr, "Pfad nicht gefunden!\n");
         return;
     }
 
@@ -90,20 +90,11 @@ int etool_ls(int argc, char* argv[])
 {
     char* path = "/";
     int multiple_dirs = 0;
-    int i;
-    // Index der verzeichnisnamen in argv
-    int dirs[argc];
-    int dir_count = 0;
-    int result = 0;
 
     while (optind < argc) {
+        int result = getopt(argc, argv, "as");
         if (result == -1) {
-            optind++;
-        } else {
-            result = getopt(argc, argv, "as");
-            if (result == -1) {
-                continue;
-            }
+            break;
         }
 
         switch (result) {
@@ -113,10 +104,6 @@ int etool_ls(int argc, char* argv[])
 
             case 's':
                 f_show_size = 1;
-                break;
-
-            case -1:
-                dirs[dir_count++] = optind - 1;
                 break;
 
             case '?':
@@ -129,19 +116,19 @@ int etool_ls(int argc, char* argv[])
 
     // Wenn mehrere Verzeichnisse angezeigt werden sollen, ein paar
     // leerschlaege anzeigen
-    if (dir_count > 1) {
+    if ((argc - optind) > 1) {
         prefix = "  ";
         multiple_dirs = 1;
     }
 
     // Wenn keine Argumente angegeben wurden, lese Root-Verzeichnis aus
-    if (dir_count == 0) {
+    if ((argc - optind) == 0) {
         ls("/");
     }
 
     // Pfade verarbeiten
-    for (i = 0; i < dir_count; i++) {
-        path = argv[dirs[i]];
+    while (optind < argc) {
+        path = argv[optind++];
 
         if (multiple_dirs) {
             printf("%s:\n", path);

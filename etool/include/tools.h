@@ -37,6 +37,7 @@
 #define _TOOLS_H_
 
 int etool_ls(int argc, char* argv[]);
+int etool_cat(int argc, char* argv[]);
 
 #endif // ndef _TOOLS_H_
 
