@@ -63,4 +63,10 @@ typedef struct ext2_blockgroup {
     uint32_t reserved[3];
 } __attribute__((packed)) ext2_blockgroup_t;
 
+/// Blockgruppe einlesen
+int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg);
+
+/// Blockgruppe sichern
+int ext2_bg_update(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg);
+
 #endif

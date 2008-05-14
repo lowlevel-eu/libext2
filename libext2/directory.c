@@ -158,10 +158,11 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
     char buf[dir->raw.size];
     uint64_t pos = 0;
     size_t newentry_len = dirent_size(strlen(name));
-    size_t entry_len;
+    size_t entry_len = 0;
 
+    if (dir->raw.size) {
     ext2_inode_readdata(dir, 0, dir->raw.size, buf);
-    while (pos < dir->raw.size) {
+    while (dir->raw.size && (pos < dir->raw.size)) {
         entry = (ext2_dirent_t*) &buf[pos];
         entry_len = dirent_size(entry->name_len);
 
@@ -193,7 +194,20 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
         }
         pos += entry->record_len;
     }
+    }
+    // TODO: Hier koennten eventuell noch ein paar Bytes vom vorherigen Eintrag
+    // genommen werden.
+    {
+        char newbuf[newentry_len];
+        newentry = (ext2_dirent_t*) newbuf;
 
-    // TODO: Verzeichnis vergroessern
+        newentry->name_len = strlen(name);
+        memcpy(newentry->name, name, newentry->name_len);
+        newentry->inode = inode->number + 1;
+        newentry->record_len = ext2_sb_blocksize(dir->fs->sb);
+        ext2_inode_writedata(dir, pos, newentry->record_len, newbuf);
+        inode->raw.link_count++;
+        return 1;
+    }
     return 0;
 }
