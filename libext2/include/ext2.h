@@ -96,5 +96,6 @@ int ext2_fs_mount(ext2_fs_t* fs);
 #include "blockgroup.h"
 #include "inode.h"
 #include "directory.h"
+#include "file.h"
 
 #endif

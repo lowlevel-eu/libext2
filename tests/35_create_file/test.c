@@ -21,24 +21,8 @@ int run_test(ext2_fs_t* fs)
         test_interror("Fehler beim Lesen des Rootverzeichnis-Inode");
     }
 
-    // Neuen Inode alloziern
-    if (!ext2_inode_alloc(fs, &newfile)) {
-        test_error("Fehler beim allozieren des Inodes");
-    }
-
-    // Verzeichniseintrag anlegen
-    if (!ext2_dir_link(&rootdir, &newfile, "newfile")) {
-        test_error("Fehler beim anlegen des Verzeichniseintrages");
-    }
-
-    if (!ext2_inode_update(&rootdir)) {
-        test_interror("Fehler beim Aktualisieren des Rootverzeichnis-Inode");
-    }
-
-    newfile.raw.deletion_time = 0;
-    newfile.raw.mode = EXT2_INODE_MODE_FILE;
-    if (!ext2_inode_update(&newfile)) {
-        test_interror("Fehler beim Aktualisieren des neuen Inodes");
+    if (!ext2_file_create(&rootdir, "newfile", &newfile)) {
+        test_error("Fehler beim Anlegen der Datei");
     }
 
     test_fsck();
