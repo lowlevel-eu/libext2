@@ -211,3 +211,39 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
     }
     return 0;
 }
+
+
+int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
+{
+    ext2_blockgroup_t bg;
+
+    // Neuen Inode alloziern
+    if (!ext2_inode_alloc(parent->fs, newi)) {
+        return 0;
+    }
+
+    // Verzeichniseintraege anlegen
+    if (!ext2_dir_link(parent, newi, name) ||
+        !ext2_dir_link(newi, newi, ".") ||
+        !ext2_dir_link(newi, parent, ".."))
+    {
+        return 0;
+    }
+
+
+    newi->raw.deletion_time = 0;
+    newi->raw.mode = EXT2_INODE_MODE_DIR;
+    if (!ext2_inode_update(newi) ||
+        !ext2_inode_update(parent))
+    {
+        return 0;
+    }
+
+    // Verzeichnisanzahl in der Blockgruppe erhoehen
+    ext2_bg_read(parent->fs, 0, &bg);
+    bg.used_directories++;
+    ext2_bg_update(parent->fs, 0, &bg);
+
+    return 1;
+}
+

@@ -78,4 +78,16 @@ int ext2_dir_link(ext2_inode_t* dir_inode, ext2_inode_t* inode,
  */
 char* ext2_dir_alloc_name(ext2_dirent_t* dirent);
 
+
+/**
+ * Neues Verzeichnis erstellen
+ *
+ * @param parent    Inode des Elternverzeichnisses
+ * @param name      Name des neuen Verzeichnisses
+ * @param newi      Speicher fuer Inode des neuen Verzeichnisses
+ *
+ * @return 1 bei Erfolg, 0 sonst
+ */
+int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi);
+
 #endif
