@@ -26,6 +26,7 @@ int run_test(ext2_fs_t* fs)
     }
 
     test_fsck();
+    test_etool();
 
     return 0;
 }

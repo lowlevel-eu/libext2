@@ -78,12 +78,23 @@ __attribute__((noreturn)) void test_interror(const char* fmt, ...)
 void test_fsck()
 {
     char* cmdline;
-
     fsync(image_fd);
 
     asprintf(&cmdline, "/sbin/e2fsck -fn %s > /dev/null 2>&1", image_name);
     if (system(cmdline)) {
         test_error("fsck hat einen Fehler gemeldet");
+    }
+    free(cmdline);
+}
+
+void test_etool()
+{
+    char* cmdline;
+    fsync(image_fd);
+
+    asprintf(&cmdline, "etool/etool %s check > /dev/null 2>&1", image_name);
+    if (system(cmdline)) {
+        test_error("etool check hat einen Fehler gemeldet");
     }
     free(cmdline);
 }

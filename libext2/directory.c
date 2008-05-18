@@ -159,6 +159,15 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
     uint64_t pos = 0;
     size_t newentry_len = dirent_size(strlen(name));
     size_t entry_len = 0;
+    ext2_inode_type_t type = 0;
+
+    // Typ des Inodes bestimmen (nur wenn der Typ auch eingetragen werden muss
+    // wegen dem Filetype Feature)
+    if (dir->fs->sb->revision && ((dir->fs->sb->features_incompat &
+        EXT2_FEATURE_INCOMP_FILETYPE)))
+    {
+        type = ext2_inode_type(inode);
+    }
 
     if (dir->raw.size) {
     ext2_inode_readdata(dir, 0, dir->raw.size, buf);
@@ -181,7 +190,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
             memcpy(newentry->name, name, newentry->name_len);
             newentry->inode = inode->number + 1;
             newentry->record_len = entry->record_len - entry_len;
-            newentry->type = 0;
+            newentry->type = type;
 
             // Alten Eintrag kuerzen
             entry->record_len = entry_len;
@@ -206,7 +215,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
         memcpy(newentry->name, name, newentry->name_len);
         newentry->inode = inode->number + 1;
         newentry->record_len = ext2_sb_blocksize(dir->fs->sb);
-        newentry->type = 0;
+        newentry->type = type;
         ext2_inode_writedata(dir, pos, newentry->record_len, newbuf);
         inode->raw.link_count++;
         return 1;
@@ -224,6 +233,9 @@ int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
         return 0;
     }
 
+    newi->raw.deletion_time = 0;
+    newi->raw.mode = EXT2_INODE_MODE_DIR;
+
     // Verzeichniseintraege anlegen
     if (!ext2_dir_link(parent, newi, name) ||
         !ext2_dir_link(newi, newi, ".") ||
@@ -232,9 +244,6 @@ int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
         return 0;
     }
 
-
-    newi->raw.deletion_time = 0;
-    newi->raw.mode = EXT2_INODE_MODE_DIR;
     if (!ext2_inode_update(newi) ||
         !ext2_inode_update(parent))
     {

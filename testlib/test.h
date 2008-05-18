@@ -53,5 +53,8 @@ __attribute__((noreturn)) void test_interror(const char* fmt, ...);
 /// Prueft das Dateisystem des aktuellen Images
 void test_fsck();
 
+/// Prueft das Dateisystem mit etool (nur ergaenzend zu e2fsck)
+void test_etool();
+
 #endif
 
