@@ -181,6 +181,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
             memcpy(newentry->name, name, newentry->name_len);
             newentry->inode = inode->number + 1;
             newentry->record_len = entry->record_len - entry_len;
+            newentry->type = 0;
 
             // Alten Eintrag kuerzen
             entry->record_len = entry_len;
@@ -205,6 +206,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
         memcpy(newentry->name, name, newentry->name_len);
         newentry->inode = inode->number + 1;
         newentry->record_len = ext2_sb_blocksize(dir->fs->sb);
+        newentry->type = 0;
         ext2_inode_writedata(dir, pos, newentry->record_len, newbuf);
         inode->raw.link_count++;
         return 1;

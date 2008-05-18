@@ -165,6 +165,9 @@ typedef struct ext2_superblock_t {
 /// Sparse-Super Feature
 #define EXT2_FEATURE_ROCOMP_SPARSE_SUPER 0x1
 
+/// Typeeintrag in Verzeichniseintraegen
+#define EXT2_FEATURE_INCOMP_FILETYPE 0x2
+
 /**
  * Superblock einlesen
  *

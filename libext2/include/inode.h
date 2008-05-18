@@ -120,6 +120,7 @@ typedef struct ext2_inode_t {
 } ext2_inode_t;
 
 
+
 // Makros fuer das Mode-Feld in Inodes
 #define EXT2_INODE_MODE_FORMAT 0xF000
 #define EXT2_INODE_MODE_SYMLINK 0xA000
@@ -133,6 +134,12 @@ typedef struct ext2_inode_t {
 #define EXT2_INODE_IS_FILE(i) EXT2_INODE_IS_FORMAT(i, EXT2_INODE_MODE_FILE)
 #define EXT2_INODE_IS_DIR(i) EXT2_INODE_IS_FORMAT(i, EXT2_INODE_MODE_DIR)
 
+typedef enum {
+    EXT2_IT_UNKOWN = 0,
+    EXT2_IT_FILE = 1,
+    EXT2_IT_DIR = 2,
+    EXT2_IT_SYMLINK = 7
+} ext2_inode_type_t;
 
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode);
 int ext2_inode_update(ext2_inode_t* inode);
@@ -144,4 +151,26 @@ int ext2_inode_readdata(
 int ext2_inode_writedata(
     ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
 
+/**
+ * Typ eines Inodes bestimmen
+ *
+ * @param inode Pointer auf den Inode
+ *
+ * @return Typ
+ */
+static inline ext2_inode_type_t ext2_inode_type(ext2_inode_t* inode) {
+    switch (inode->raw.mode & EXT2_INODE_MODE_FORMAT) {
+        case EXT2_INODE_MODE_DIR:
+            return EXT2_IT_DIR;
+
+        case EXT2_INODE_MODE_FILE:
+            return EXT2_IT_FILE;
+
+        case EXT2_INODE_MODE_SYMLINK:
+            return EXT2_IT_SYMLINK;
+
+        default:
+            return EXT2_IT_UNKOWN;
+    }
+}
 #endif
