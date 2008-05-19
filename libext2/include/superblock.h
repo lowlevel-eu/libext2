@@ -171,8 +171,9 @@ typedef struct ext2_superblock_t {
 /**
  * Superblock einlesen
  *
- * @param sb Pointer auf den Speicherbereich in den der Superblock kopiert
- *           werden soll.
+ * @param fs    Dateisystem
+ * @param sb    Pointer auf den Speicherbereich in den der Superblock kopiert
+ *              werden soll.
  *
  * @return 1 wenn der Superblock erfolgreich eingelesen wurde, 0 sonst
  */
@@ -181,6 +182,7 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
 /**
  * Superblockkopie einlesen
  *
+ * @param fs    Dateisystem
  * @param dest  Pointer auf den Speicherbereich in den der Superblock kopiert
  *              werden soll.
  * @param copy  Nummer der Kopie, 0 ist die erste Kopie
