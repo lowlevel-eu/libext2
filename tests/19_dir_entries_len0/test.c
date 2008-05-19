@@ -21,7 +21,7 @@ int run_test(ext2_fs_t* fs)
         test_interror("Inode konnte nicht eingelesen werden");
     }
 
-    ext2_dir_foreach(fs, &rootdir, handle_dirent, NULL);
+    ext2_dir_foreach(&rootdir, handle_dirent, NULL);
 
     return 0;
 }

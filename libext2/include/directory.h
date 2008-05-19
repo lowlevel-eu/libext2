@@ -67,7 +67,7 @@ typedef struct ext2_dirent {
  *                  Wert private.
  * @param private   Wert der direkt an den Handler uebergeben wird.
  */
-void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
+void ext2_dir_foreach(ext2_inode_t* inode,
     int (*handler) (ext2_dirent_t*, void*), void* private);
 
 /**
@@ -79,8 +79,7 @@ void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
  * @return      Pointer auf den gefundenen Verzeichniseintrag. Muss mit free
  *              freigegeben.
  */
-ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
-    char* name);
+ext2_dirent_t* ext2_dir_get(ext2_inode_t* inode, char* name);
 
 /**
  * Sucht einen Inode nach dem Pfad
@@ -89,7 +88,7 @@ ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
  * @param path  Gesuchter Pfad (mit / getrennt, fuehrender / optional)
  * @param inode Pointer auf Speicherstelle in der der gefundene Inode abgelegt
  *              werden soll.
- * 
+ *
  * @return      1 wenn die Datei/das Verzeichnis gefunden wurde
  */
 int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode);

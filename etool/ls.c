@@ -88,7 +88,7 @@ static void ls(const char* path)
         return;
     }
 
-    ext2_dir_foreach(fs, &inode, handle_dirent, NULL);
+    ext2_dir_foreach(&inode, handle_dirent, NULL);
 }
 
 int etool_ls(int argc, char* argv[])

@@ -88,7 +88,7 @@ static int check_dir(ext2_inode_t* inode)
     }
 
 
-    ext2_dir_foreach(fs, inode, handler, &errors);
+    ext2_dir_foreach(inode, handler, &errors);
 
     return (errors == 0);
 }

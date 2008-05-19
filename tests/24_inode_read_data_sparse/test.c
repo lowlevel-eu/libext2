@@ -20,7 +20,7 @@ int run_test(ext2_fs_t* fs)
         test_interror("Inode konnte nicht eingelesen werden");
     }
 
-    dirent = ext2_dir_get(fs, &rootdir, "file");
+    dirent = ext2_dir_get(&rootdir, "file");
     if (!dirent) {
         test_error("Datei /file wurde nicht gefunden");
     }

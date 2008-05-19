@@ -44,7 +44,7 @@ struct private_dir_get {
     int found;
 };
 
-void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
+void ext2_dir_foreach(ext2_inode_t* inode,
     int (*handler) (ext2_dirent_t*, void*), void* private)
 {
     ext2_dirent_t* entry;
@@ -84,8 +84,7 @@ static int dir_get_handler(ext2_dirent_t* dirent, void* prv)
     return 0;
 }
 
-ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
-    char* name)
+ext2_dirent_t* ext2_dir_get(ext2_inode_t* inode, char* name)
 {
     struct private_dir_get prv = {
         .name = name,
@@ -93,7 +92,7 @@ ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
         .result = NULL
     };
 
-    ext2_dir_foreach(fs, inode, dir_get_handler, &prv);
+    ext2_dir_foreach(inode, dir_get_handler, &prv);
     return prv.result;
 }
 
@@ -124,7 +123,7 @@ int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode)
                 return 0;
             }
 
-            dirent = ext2_dir_get(fs, &parent, part);
+            dirent = ext2_dir_get(&parent, part);
             if (!dirent) {
                 return 0;
             }

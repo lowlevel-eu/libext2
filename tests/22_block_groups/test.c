@@ -27,13 +27,13 @@ int run_test(ext2_fs_t* fs)
         test_interror("Fehler beim Lesen des Rootverzeichnis-Inode");
     }
 
-    dirent = ext2_dir_get(fs, &rootdir, "nonexistent");
+    dirent = ext2_dir_get(&rootdir, "nonexistent");
     if (dirent) {
         test_error("Datei /nonexistent wurde gefunden");
     }
     free(dirent);
 
-    dirent = ext2_dir_get(fs, &rootdir, "testfile");
+    dirent = ext2_dir_get(&rootdir, "testfile");
     if (!dirent) {
         test_error("Datei /testfile wurde nicht gefunden");
     }
