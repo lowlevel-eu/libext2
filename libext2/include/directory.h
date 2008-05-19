@@ -57,24 +57,64 @@ typedef struct ext2_dirent {
 } __attribute__((packed)) ext2_dirent_t;
 
 
-/// Verzeichniseintraege verabeiten
+/**
+ * Verzeichniseintraege verabeiten
+ *
+ * @param inode     Pointer auf den Verzeichnis-Inode
+ * @param handler   Handler, der fuer jeden einzelnen Verzeichniseintrag
+ *                  aufgerufen wird. Der erste Parameter der Funktion ist ein
+ *                  Zeiger auf den Verzeichniseintrag, der zweite erhaelt den
+ *                  Wert private.
+ * @param private   Wert der direkt an den Handler uebergeben wird.
+ */
 void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
     int (*handler) (ext2_dirent_t*, void*), void* private);
 
-/// Sucht einen Verzeichniseintrag nach dem Namen
+/**
+ * Sucht einen Verzeichniseintrag nach dem Namen
+ *
+ * @param inode Pointer auf den Inode des Elternverzeichnisses
+ * @param name  Namen des zu suchenden Eintrages
+ *
+ * @return      Pointer auf den gefundenen Verzeichniseintrag. Muss mit free
+ *              freigegeben.
+ */
 ext2_dirent_t* ext2_dir_get(ext2_fs_t* fs, ext2_inode_t* inode,
     char* name);
 
-/// Sucht einen Inode nach dem Pfad
+/**
+ * Sucht einen Inode nach dem Pfad
+ *
+ * @param fs    Dateisystem auf dem gesucht werden soll
+ * @param path  Gesuchter Pfad (mit / getrennt, fuehrender / optional)
+ * @param inode Pointer auf Speicherstelle in der der gefundene Inode abgelegt
+ *              werden soll.
+ * 
+ * @return      1 wenn die Datei/das Verzeichnis gefunden wurde
+ */
 int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode);
 
-/// Legt einen neuen Verzeichniseintrag an
+/**
+ * Legt einen neuen Verzeichniseintrag an
+ *
+ * @param dir_inode Inode des Verzeichnisses, in dem der Eintrag erstellt
+ *                  werden soll
+ * @param inode     Inode des neuen Eintrags
+ * @param name      Name des neuen Eintrags
+ *
+ * @return          1 bei Erfolg, sonst 0
+ */
 int ext2_dir_link(ext2_inode_t* dir_inode, ext2_inode_t* inode,
     const char* name);
 
 /**
  * Nullterminierten String allozieren und mit dem Namen eines
  * Verzeichniseintrags fuellen
+ *
+ * @param dirent    Verzeichnieintrag
+ *
+ * @return          Pointer auf allozierte Zeichenkette, muss mit free()
+ *                  freigegeben werden.
  */
 char* ext2_dir_alloc_name(ext2_dirent_t* dirent);
 
@@ -86,7 +126,7 @@ char* ext2_dir_alloc_name(ext2_dirent_t* dirent);
  * @param name      Name des neuen Verzeichnisses
  * @param newi      Speicher fuer Inode des neuen Verzeichnisses
  *
- * @return 1 bei Erfolg, 0 sonst
+ * @return          1 bei Erfolg, 0 sonst
  */
 int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi);
 

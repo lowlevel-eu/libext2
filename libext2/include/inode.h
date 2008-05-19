@@ -141,13 +141,84 @@ typedef enum {
     EXT2_IT_SYMLINK = 7
 } ext2_inode_type_t;
 
+
+/**
+ * Inode einlesen
+ * 
+ * @param fs        Dateisystem
+ * @param inode_nr  Nummer des zu ladenden Inodes
+ * @param inode     Pointer auf Speicherbereich in den der Inode geladen
+ *                  werden soll
+ *
+ * @return 1 wenn der Inode eingelesen wurde, 0 sonst.
+ */
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode);
+
+/**
+ * Inode speichern
+ *
+ * @param inode Mit inode_read gelesener/mit inode_alloc allozierter Inode
+ *
+ * @return 1 wenn der Inode eingelesen wurde, 0 sonst.
+ */
 int ext2_inode_update(ext2_inode_t* inode);
+
+/**
+ * Neuen Inode allozieren
+ *
+ * @param fs    Dateisystem
+ * @param inode Speicherbreich in dem der allozierte Inode abgelegt werden
+ *              soll.
+ *
+ * @return 1 wenn der Inode erfolgreich alloziert wurde, 0 sonst
+ */
 int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode);
+
+/**
+ * Datenblock aus einem Inode einlesen
+ *
+ * @param inode Inode aus dem der Block geladen werden soll
+ * @param block Blocknummer
+ * @param buf   Puffer in den der Block gelesen werden soll
+ *
+ * @return 1 wenn der Block geladen werden soll, 0 sonst
+ */
 int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf);
+
+/**
+ * Datenblock in einen Inode schreiben
+ *
+ * @param inode Inode in den der Block geschrieben werden soll
+ * @param block Blocknummer
+ * @param buf   Puffer aus dem die Daten geschrieben werden sollen
+ *
+ * @return 1 wenn der Block erfolgreich geschrieben wurde, 0 sonst
+ */
 int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf);
+
+/**
+ * Datenbereich aus einem Inode lesen
+ *
+ * @param inode Inode
+ * @param start Offset vom Anfang der Daten
+ * @param len   Anzahl der zu lesenden Bytes
+ * @param buf   Pufer in dem die Daten abgelegt wurden
+ *
+ * @return 1 wenn die Daten erfolgreich gelesen wurden, 0 sonst
+ */
 int ext2_inode_readdata(
     ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
+
+/**
+ * Datenbereich in einen Inode schreiben
+ *
+ * @param inode Inode
+ * @param start Offset an den die Daten geschrieben werden
+ * @param len   Anzahl der zu schreibenden Bytes
+ * @param buf   Puffer aus dem die Daten geschreiben werden sollen
+ *
+ * @return 1 wenn die Daten erfolgreich geschrieben wurden, 0 sonst
+ */
 int ext2_inode_writedata(
     ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
 

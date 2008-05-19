@@ -56,6 +56,29 @@ static int dirent_type(ext2_dirent_t* dirent, ext2_inode_t* inode)
     return 1;
 }
 
+int handler(ext2_dirent_t* dirent, void* priv) {
+    ext2_inode_t inode;
+    int* errors = priv;
+
+    if (!ext2_inode_read(fs, dirent->inode - 1, &inode)) {
+        fprintf(stderr, "Fehler: Root-Inode konnte nicht eingelesen werden!"
+            "\n");
+        return 1;
+    }
+
+    if (!EXT2_INODE_IS_DIR(&inode)) {
+        return 0;
+    }
+
+    if (!dirent_type(dirent, &inode)) {
+        (*errors)++;
+        return 1;
+    }
+
+    return 0;
+}
+
+
 static int check_dir(ext2_inode_t* inode)
 {
     int errors = 0;
@@ -64,27 +87,6 @@ static int check_dir(ext2_inode_t* inode)
         return 1;
     }
 
-    int handler(ext2_dirent_t* dirent, void* priv) {
-        ext2_inode_t inode;
-        int* errors = priv;
-
-        if (!ext2_inode_read(fs, dirent->inode - 1, &inode)) {
-            fprintf(stderr, "Fehler: Root-Inode konnte nicht eingelesen werden!"
-                "\n");
-            return 1;
-        }
-
-        if (!EXT2_INODE_IS_DIR(&inode)) {
-            return 0;
-        }
-
-        if (!dirent_type(dirent, &inode)) {
-            (*errors)++;
-            return 1;
-        }
-
-        return 0;
-    }
 
     ext2_dir_foreach(fs, inode, handler, &errors);
 

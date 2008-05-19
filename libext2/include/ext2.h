@@ -40,6 +40,10 @@
 #include <stdlib.h>
 
 struct ext2_superblock_t;
+
+/**
+ * Zentrale Struktur zur Verwaltung eines eingebundenen Dateisystemes
+ */
 typedef struct {
     /**
      * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
