@@ -54,6 +54,11 @@ void ext2_dir_foreach(ext2_inode_t* inode,
     ext2_inode_readdata(inode, 0, inode->raw.size, buf);
     while (pos < inode->raw.size) {
         entry = (ext2_dirent_t*) &buf[pos];
+        pos += entry->record_len;
+
+        if (entry->inode == 0) {
+            continue;
+        }
 
         if (handler(entry, private)) {
             break;
@@ -63,7 +68,6 @@ void ext2_dir_foreach(ext2_inode_t* inode,
             // TODO: Was geschieht mit dem kaputten FS?
             break;
         }
-        pos += entry->record_len;
     }
 }
 
@@ -220,6 +224,47 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
         return 1;
     }
     return 0;
+}
+
+int ext2_dir_unlink(ext2_inode_t* dir, const char* name)
+{
+    ext2_dirent_t* prev_entry = NULL;
+    ext2_dirent_t* entry;
+    ext2_inode_t inode;
+    char buf[dir->raw.size];
+    uint64_t pos = 0;
+    int ret = 0;
+
+    ext2_inode_readdata(dir, 0, dir->raw.size, buf);
+    while (pos < dir->raw.size) {
+        entry = (ext2_dirent_t*) &buf[pos];
+
+        // Eintrag als unbenutzt markieren
+        if ((strlen(name) == entry->name_len) &&
+            !strncmp(name, entry->name, entry->name_len))
+        {
+            if (!ext2_inode_read(dir->fs, entry->inode - 1, &inode)) {
+                return 0;
+            }
+            inode.raw.link_count--;
+            if (!ext2_inode_update(&inode)) {
+                return 0;
+            }
+
+            entry->inode = 0;
+            ret = 1;
+        }
+
+        // Mit vorhergehendem Eintrag zusammenfassen, wenn beide frei sind
+        if ((entry->inode == 0) && prev_entry && (prev_entry->inode == 0)) {
+            // TODO
+        }
+
+        pos += entry->record_len;
+    }
+    ext2_inode_writedata(dir, 0, dir->raw.size, buf);
+
+    return ret;
 }
 
 

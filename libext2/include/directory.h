@@ -107,6 +107,19 @@ int ext2_dir_link(ext2_inode_t* dir_inode, ext2_inode_t* inode,
     const char* name);
 
 /**
+ * Loescht einen Verzeichniseintrag. Falls der Eintrag die letzte Referenz
+ * war, wird der zugehoerige Inode geloescht.
+ *
+ * @param dir       Inode des Verzeichnisses, in dem der Eintrag geloescht
+ *                  werden soll
+ * @param inode     Inode des neuen Eintrags
+ * @param name      Name des neuen Eintrags
+ *
+ * @return          1 bei Erfolg, sonst 0
+ */
+int ext2_dir_unlink(ext2_inode_t* dir, const char* name);
+
+/**
  * Nullterminierten String allozieren und mit dem Namen eines
  * Verzeichniseintrags fuellen
  *
