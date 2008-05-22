@@ -59,7 +59,10 @@ typedef struct ext2_raw_inode_t {
     /// Zeit der letzten Aenderungn
     uint32_t modification_time;
 
-    /// Zeit der Loeschung
+    /**
+     * Zeit der Loeschung. 0 fuer existierende Dateien. Bis zu einem Wert von
+     * superblock.inode_count - 1 als Next-Pointer der Orphaned-Liste genutzt.
+     */
     uint32_t deletion_time;
 
     /// GID
@@ -173,6 +176,15 @@ int ext2_inode_update(ext2_inode_t* inode);
  * @return 1 wenn der Inode erfolgreich alloziert wurde, 0 sonst
  */
 int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode);
+
+/**
+ * Inode freigeben
+ *
+ * @param inode Freizugebender Inode
+ *
+ * @return 1 wenn der Inode erfolgreich freigegeben wurde, 0 sonst
+ */
+int ext2_inode_free(ext2_inode_t* inode);
 
 /**
  * Datenblock aus einem Inode einlesen

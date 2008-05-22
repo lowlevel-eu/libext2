@@ -37,6 +37,8 @@
 #include <stdio.h>
 #include "ext2.h"
 
+static uint64_t block_free(ext2_fs_t* fs, uint64_t num);
+
 int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
 {
     if (!fs->dev_read(
@@ -115,7 +117,7 @@ static uint64_t inode_alloc(ext2_fs_t* fs)
     uint64_t bitmap_offset;
     uint32_t i, j;
 
-    uint32_t bgnum = 0;
+    uint32_t bgnum = 0; // FIXME
     ext2_blockgroup_t bg;
     ext2_bg_read(fs, bgnum, &bg);
 
@@ -173,6 +175,54 @@ int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode)
     return 1;
 }
 
+int ext2_inode_free(ext2_inode_t* inode)
+{
+    ext2_fs_t* fs = inode->fs;
+    int i;
+
+    // dtime muss fuer geloeschte Inodes != 0 sein
+    inode->raw.deletion_time = inode->fs->sb->inode_count; // FIXME
+
+    // Inodebitmap anpassen
+    uint64_t bitmap_offset;
+    uint32_t bgnum = 0; // FIXME
+    uint32_t bitmap[fs->sb->inodes_per_group / 32];
+    ext2_blockgroup_t bg;
+    ext2_bg_read(fs, bgnum, &bg);
+
+    bitmap_offset = ext2_sb_blocksize(fs->sb) * bg.inode_bitmap;
+    if (!fs->dev_read(bitmap_offset, fs->sb->inodes_per_group / 8, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    bitmap[inode->number / 32] &= ~(1 << (inode->number % 32));
+
+    if (!fs->dev_write(bitmap_offset, fs->sb->blocks_per_group / 8, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    fs->sb->free_inodes++;
+    ext2_sb_update(fs, fs->sb);
+
+    bg.free_inodes++;
+    ext2_bg_update(fs, 0, &bg);
+
+    // Blocks freigeben
+    // TODO Indirekte
+
+    for (i = 0; i < 15; i++) {
+        if (inode->raw.blocks[i]) {
+            block_free(inode->fs, inode->raw.blocks[i]);
+        }
+    }
+
+    return 1;
+}
+
 static uint64_t block_alloc(ext2_fs_t* fs)
 {
     uint32_t bitmap[fs->sb->blocks_per_group];
@@ -182,7 +232,7 @@ static uint64_t block_alloc(ext2_fs_t* fs)
     uint8_t  buf[block_size];
 
     ext2_blockgroup_t bg;
-    ext2_bg_read(fs, 0, &bg);
+    ext2_bg_read(fs, 0, &bg); // FIXME
 
     // Bitmap laden
     bitmap_offset = ext2_sb_blocksize(fs->sb) * bg.block_bitmap;
@@ -230,6 +280,40 @@ found:
     ext2_bg_update(fs, 0, &bg);
 
     return (i * 32) + j + fs->sb->first_data_block;
+}
+
+static uint64_t block_free(ext2_fs_t* fs, uint64_t num)
+{
+    uint32_t bitmap[fs->sb->blocks_per_group];
+    uint64_t bitmap_offset;
+
+    ext2_blockgroup_t bg;
+    ext2_bg_read(fs, 0, &bg); // FIXME
+
+    // Bitmap laden
+    bitmap_offset = ext2_sb_blocksize(fs->sb) * bg.block_bitmap;
+    if (!fs->dev_read(bitmap_offset, 4 * fs->sb->blocks_per_group, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    // Als frei markieren
+    num -= fs->sb->first_data_block;
+    bitmap[num / 32] &= ~(1 << (num % 32));
+    if (!fs->dev_write(bitmap_offset, 4 * fs->sb->blocks_per_group, bitmap,
+        fs->dev_private))
+    {
+        return 0;
+    }
+
+    fs->sb->free_blocks++;
+    ext2_sb_update(fs, fs->sb);
+
+    bg.free_blocks++;
+    ext2_bg_update(fs, 0, &bg);
+
+    return 1;
 }
 
 static uint64_t get_block_offset(

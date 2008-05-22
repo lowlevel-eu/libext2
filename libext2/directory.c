@@ -246,7 +246,9 @@ int ext2_dir_unlink(ext2_inode_t* dir, const char* name)
             if (!ext2_inode_read(dir->fs, entry->inode - 1, &inode)) {
                 return 0;
             }
-            inode.raw.link_count--;
+            if (--inode.raw.link_count == 0) {
+                ext2_inode_free(&inode);
+            }
             if (!ext2_inode_update(&inode)) {
                 return 0;
             }
