@@ -111,13 +111,12 @@ int ext2_inode_update(ext2_inode_t* inode)
     return 1;
 }
 
-static uint64_t inode_alloc(ext2_fs_t* fs)
+static uint64_t inode_alloc(ext2_fs_t* fs, uint32_t bgnum)
 {
     uint32_t bitmap[fs->sb->inodes_per_group / 32];
     uint64_t bitmap_offset;
     uint32_t i, j;
 
-    uint32_t bgnum = 0; // FIXME
     ext2_blockgroup_t bg;
     ext2_bg_read(fs, bgnum, &bg);
 
@@ -156,13 +155,25 @@ found:
     ext2_sb_update(fs, fs->sb);
 
     bg.free_inodes--;
-    ext2_bg_update(fs, 0, &bg);
-    return (i * 32) + j + 1;
+    ext2_bg_update(fs, bgnum, &bg);
+
+    return (bgnum * fs->sb->inodes_per_group) + (i * 32) + j + 1;
 }
 
 int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode)
 {
-    uint64_t number = inode_alloc(fs);
+    uint64_t number;
+    uint32_t bgnum;
+
+    for (bgnum = 0; bgnum < ext2_sb_bgcount(fs->sb); bgnum++) {
+        number = inode_alloc(fs, bgnum);
+        if (number) {
+            goto found;
+        }
+    }
+    return 0;
+
+found:
 
     if (!number) {
         return 0;

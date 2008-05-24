@@ -273,11 +273,14 @@ int ext2_dir_unlink(ext2_inode_t* dir, const char* name)
 int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
 {
     ext2_blockgroup_t bg;
+    uint32_t bgnum;
 
     // Neuen Inode alloziern
     if (!ext2_inode_alloc(parent->fs, newi)) {
         return 0;
     }
+
+    bgnum = newi->number / newi->fs->sb->inodes_per_group;
 
     newi->raw.deletion_time = 0;
     newi->raw.mode = EXT2_INODE_MODE_DIR;
@@ -297,9 +300,9 @@ int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
     }
 
     // Verzeichnisanzahl in der Blockgruppe erhoehen
-    ext2_bg_read(parent->fs, 0, &bg);
+    ext2_bg_read(parent->fs, bgnum, &bg);
     bg.used_directories++;
-    ext2_bg_update(parent->fs, 0, &bg);
+    ext2_bg_update(parent->fs, bgnum, &bg);
 
     return 1;
 }

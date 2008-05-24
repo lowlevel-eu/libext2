@@ -211,6 +211,18 @@ static inline size_t ext2_sb_blocksize(ext2_superblock_t* sb) {
 }
 
 /**
+ * Errechnet die Anzahl der Blockgruppen auf einem Dateisystem
+ *
+ * @param sb Pointer auf den Superblock
+ *
+ * @return Blockgroesse in Bytes
+ */
+static inline size_t ext2_sb_bgcount(ext2_superblock_t* sb) {
+    return (sb->block_count - sb->first_data_block + 
+        (sb->blocks_per_group - 1)) / sb->blocks_per_group;
+}
+
+/**
  * Errechnet die Blockgroesse auf einem Dateisystem
  *
  * @param sb Pointer auf den Superblock
