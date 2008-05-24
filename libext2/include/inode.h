@@ -147,7 +147,7 @@ typedef enum {
 
 /**
  * Inode einlesen
- * 
+ *
  * @param fs        Dateisystem
  * @param inode_nr  Nummer des zu ladenden Inodes
  * @param inode     Pointer auf Speicherbereich in den der Inode geladen
@@ -256,4 +256,30 @@ static inline ext2_inode_type_t ext2_inode_type(ext2_inode_t* inode) {
             return EXT2_IT_UNKOWN;
     }
 }
+
+/**
+ * Interne Nummer errechnen, mit der gerechnet werden muss
+ *
+ * @param fs        Dateisystem
+ * @param nr        Inodenummer
+ *
+ * @return Nummer
+ */
+static inline uint64_t ext2_inode_to_internal(ext2_fs_t* fs, uint64_t nr) {
+    return nr - 1;
+}
+
+/**
+ * Aus interner Inode nummer die richtige Inodenummer errechnen, die zum
+ * Beispiel in Verzeichniseintraegen eingetragen wird.
+ *
+ * @param fs        Dateisystem
+ * @param nr        Inodenummer
+ *
+ * @return Nummer
+ */
+static inline uint64_t ext2_inode_from_internal(ext2_fs_t* fs, uint64_t nr) {
+    return nr + 1;
+}
+
 #endif

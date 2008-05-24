@@ -16,7 +16,7 @@ int run_test(ext2_fs_t* fs)
 
     ext2_fs_mount(fs);
 
-    if (!ext2_inode_read(fs, 1, &rootdir)) {
+    if (!ext2_inode_read(fs, EXT2_ROOTDIR_INODE, &rootdir)) {
         test_interror("Inode konnte nicht eingelesen werden");
     }
 
@@ -25,7 +25,7 @@ int run_test(ext2_fs_t* fs)
         test_error("Datei /file wurde nicht gefunden");
     }
 
-    if (!ext2_inode_read(fs, dirent->inode - 1, &testfile)) {
+    if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
 

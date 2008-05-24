@@ -26,7 +26,7 @@ int run_test(ext2_fs_t* fs)
         test_interror("Fehler beim Lesen des Superblocks");
     }
 
-    if (!ext2_inode_read(fs, 1, &rootdir)) {
+    if (!ext2_inode_read(fs, EXT2_ROOTDIR_INODE, &rootdir)) {
         test_interror("Fehler beim Lesen des Rootverzeichnis-Inode");
     }
 
@@ -46,7 +46,7 @@ int run_test(ext2_fs_t* fs)
         test_error("Eine falsche Datei wurde gefunden: %s", filename);
     }
 
-    if (!ext2_inode_read(fs, dirent->inode - 1, &testfile)) {
+    if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
 

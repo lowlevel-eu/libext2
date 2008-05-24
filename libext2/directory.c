@@ -114,7 +114,7 @@ int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode)
     char pb[strlen(path) + 1];
     const char* delim = "/";
     char* part;
-    uint64_t parent_no = 1;
+    uint64_t parent_no = EXT2_ROOTDIR_INODE;
     ext2_inode_t parent;
     ext2_dirent_t* dirent;
 
@@ -132,7 +132,7 @@ int ext2_dir_find(ext2_fs_t* fs, const char* path, ext2_inode_t* inode)
                 return 0;
             }
 
-            parent_no = dirent->inode - 1;
+            parent_no = dirent->inode;
             free(dirent);
         }
         part = strtok(NULL, delim);
@@ -191,7 +191,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
             // Neuen Eintrag befuellen
             newentry->name_len = strlen(name);
             memcpy(newentry->name, name, newentry->name_len);
-            newentry->inode = inode->number + 1;
+            newentry->inode = inode->number;
             newentry->record_len = entry->record_len - entry_len;
             newentry->type = type;
 
@@ -216,7 +216,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
 
         newentry->name_len = strlen(name);
         memcpy(newentry->name, name, newentry->name_len);
-        newentry->inode = inode->number + 1;
+        newentry->inode = inode->number;
         newentry->record_len = ext2_sb_blocksize(dir->fs->sb);
         newentry->type = type;
         ext2_inode_writedata(dir, pos, newentry->record_len, newbuf);
@@ -243,7 +243,7 @@ int ext2_dir_unlink(ext2_inode_t* dir, const char* name)
         if ((strlen(name) == entry->name_len) &&
             !strncmp(name, entry->name, entry->name_len))
         {
-            if (!ext2_inode_read(dir->fs, entry->inode - 1, &inode)) {
+            if (!ext2_inode_read(dir->fs, entry->inode, &inode)) {
                 return 0;
             }
             if (--inode.raw.link_count == 0) {

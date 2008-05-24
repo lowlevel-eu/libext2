@@ -24,11 +24,11 @@ int run_test(ext2_fs_t* fs)
     }
 
 
-    if (a.number != 13) {
+    if (a.number != 14) {
         test_error("Inodenummer von '/a/b/c' stimmt nicht");
     }
 
-    if (b.number != 13) {
+    if (b.number != 14) {
         test_error("Inodenummer von '/a/b/c' stimmt nicht");
     }
 

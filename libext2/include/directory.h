@@ -38,6 +38,9 @@
 
 #include <stdint.h>
 
+/// Inodenummer des Rootverzeichnisses
+#define EXT2_ROOTDIR_INODE 2
+
 /// Verzeichniseintrag wie er intern benutzt wird
 typedef struct ext2_dirent {
     /// Inode-Nummer

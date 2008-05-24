@@ -69,13 +69,15 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
 {
     size_t inode_size;
     uint64_t inode_offset;
+    uint64_t inode_int;
     ext2_blockgroup_t bg;
 
-    ext2_bg_read(fs, inode_nr / fs->sb->inodes_per_group, &bg);
+    inode_int = ext2_inode_to_internal(fs, inode_nr);
+    ext2_bg_read(fs, inode_int / fs->sb->inodes_per_group, &bg);
 
     inode_size = ext2_sb_inodesize(fs->sb);
     inode_offset = ext2_sb_blocksize(fs->sb) * bg.inode_table
-        + inode_size * (inode_nr % fs->sb->inodes_per_group);
+        + inode_size * (inode_int % fs->sb->inodes_per_group);
 
     if (!fs->dev_read(inode_offset, sizeof(inode->raw), &inode->raw,
         fs->dev_private))
@@ -93,14 +95,16 @@ int ext2_inode_update(ext2_inode_t* inode)
 {
     size_t inode_size;
     uint64_t inode_offset;
+    uint64_t inode_int;
     ext2_blockgroup_t bg;
     ext2_fs_t* fs = inode->fs;
 
-    ext2_bg_read(fs, inode->number / fs->sb->inodes_per_group, &bg);
+    inode_int = ext2_inode_to_internal(fs, inode->number);
+    ext2_bg_read(fs, inode_int / fs->sb->inodes_per_group, &bg);
 
     inode_size = ext2_sb_inodesize(fs->sb);
     inode_offset = ext2_sb_blocksize(fs->sb) * bg.inode_table
-        + inode_size * (inode->number % fs->sb->inodes_per_group);
+        + inode_size * (inode_int % fs->sb->inodes_per_group);
 
     if (!fs->dev_write(inode_offset, sizeof(inode->raw), &inode->raw,
         fs->dev_private))
@@ -111,6 +115,11 @@ int ext2_inode_update(ext2_inode_t* inode)
     return 1;
 }
 
+/**
+ * Neuen Inode allozieren
+ *
+ * @return Interne Inodenummer
+ */
 static uint64_t inode_alloc(ext2_fs_t* fs, uint32_t bgnum)
 {
     uint32_t bitmap[fs->sb->inodes_per_group / 32];
@@ -157,7 +166,7 @@ found:
     bg.free_inodes--;
     ext2_bg_update(fs, bgnum, &bg);
 
-    return (bgnum * fs->sb->inodes_per_group) + (i * 32) + j + 1;
+    return (bgnum * fs->sb->inodes_per_group) + (i * 32) + j;
 }
 
 int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode)
@@ -179,7 +188,7 @@ found:
         return 0;
     }
 
-    inode->number = number - 1;
+    inode->number = ext2_inode_from_internal(fs, number);
     inode->fs = fs;
 
     memset(&inode->raw, 0, sizeof(inode->raw));
@@ -189,6 +198,7 @@ found:
 int ext2_inode_free(ext2_inode_t* inode)
 {
     ext2_fs_t* fs = inode->fs;
+    uint64_t inode_int = ext2_inode_to_internal(fs, inode->number);
     int i;
 
     // dtime muss fuer geloeschte Inodes != 0 sein
@@ -196,8 +206,8 @@ int ext2_inode_free(ext2_inode_t* inode)
 
     // Inodebitmap anpassen
     uint64_t bitmap_offset;
-    uint32_t bgnum = inode->number / fs->sb->inodes_per_group;
-    uint32_t num = inode->number % fs->sb->inodes_per_group;
+    uint32_t bgnum = inode_int / fs->sb->inodes_per_group;
+    uint32_t num = inode_int % fs->sb->inodes_per_group;
     uint32_t bitmap[fs->sb->inodes_per_group / 32];
     size_t   block_size = ext2_sb_blocksize(fs->sb);
     ext2_blockgroup_t bg;

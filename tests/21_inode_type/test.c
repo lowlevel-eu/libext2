@@ -16,15 +16,15 @@ int run_test(ext2_fs_t* fs)
 
     ext2_fs_mount(fs);
 
-    if (!ext2_inode_read(fs, 11, &file)) {
+    if (!ext2_inode_read(fs, 12, &file)) {
         test_interror("Datei-Inode konnte nicht eingelesen werden");
     }
 
-    if (!ext2_inode_read(fs, 10, &dir)) {
+    if (!ext2_inode_read(fs, 11, &dir)) {
         test_interror("Verzeichnis-Inode konnte nicht eingelesen werden");
     }
 
-    if (!ext2_inode_read(fs, 12, &symlink)) {
+    if (!ext2_inode_read(fs, 13, &symlink)) {
         test_interror("Symlink-Inode konnte nicht eingelesen werden");
     }
 

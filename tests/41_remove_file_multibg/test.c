@@ -22,7 +22,7 @@ int run_test(ext2_fs_t* fs)
         test_interror("Image konnte nicht gemountet werden");
     }
 
-    if (!ext2_inode_read(fs, 1, &rootdir)) {
+    if (!ext2_inode_read(fs, EXT2_ROOTDIR_INODE, &rootdir)) {
         test_interror("Inode konnte nicht eingelesen werden");
     }
 
