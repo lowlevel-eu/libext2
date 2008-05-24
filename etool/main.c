@@ -52,6 +52,7 @@ struct tool tools[] = {
     {"cat", etool_cat},
     {"mkdir", etool_mkdir},
     {"check", etool_check},
+    {"inode_dump", etool_inode_dump},
     {NULL, NULL}
 };
 

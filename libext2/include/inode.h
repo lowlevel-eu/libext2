@@ -282,4 +282,11 @@ static inline uint64_t ext2_inode_from_internal(ext2_fs_t* fs, uint64_t nr) {
     return nr + 1;
 }
 
+/**
+ * Inhalt der wichtigsten Felder eines Inodes auf der Standardausgabe anzeigen
+ *
+ * @param inode Pointer auf den Inode
+ */
+void ext2_inode_dump(ext2_inode_t* inode);
+
 #endif

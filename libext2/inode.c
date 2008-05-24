@@ -323,7 +323,8 @@ static uint64_t block_alloc(ext2_fs_t* fs)
     return 0;
 
 found:
-    block_num = fs->sb->blocks_per_group * bgnum + (i * 32 + j);
+    block_num = fs->sb->blocks_per_group * bgnum + (i * 32 + j) +
+        fs->sb->first_data_block;
 
     // Mit Nullen initialisieren
     memset(buf, 0, block_size);
@@ -347,7 +348,7 @@ found:
     bg.free_blocks--;
     ext2_bg_update(fs, bgnum, &bg);
 
-    return block_num + fs->sb->first_data_block;
+    return block_num;
 }
 
 static uint64_t block_free(ext2_fs_t* fs, uint64_t num)
@@ -556,4 +557,28 @@ int ext2_inode_writedata(
     }
 
     return 1;
+}
+
+#define DL(n,v) printf("   %s: %d %u 0x%x\n", n, (int) (inode->raw.v), \
+    (unsigned int) (inode->raw.v), (unsigned int) (inode->raw.v));
+void ext2_inode_dump(ext2_inode_t* inode)
+{
+    printf("Inode %d:\n", inode->number);
+    DL("size", size);
+    DL("block_count", block_count);
+    DL("block0", blocks[0]);
+    DL("block1", blocks[1]);
+    DL("block2", blocks[2]);
+    DL("block3", blocks[3]);
+    DL("block4", blocks[4]);
+    DL("block5", blocks[5]);
+    DL("block6", blocks[6]);
+    DL("block7", blocks[7]);
+    DL("block8", blocks[8]);
+    DL("block9", blocks[9]);
+    DL("block10", blocks[10]);
+    DL("block11", blocks[11]);
+    DL("block12", blocks[12]);
+    DL("block13", blocks[13]);
+
 }

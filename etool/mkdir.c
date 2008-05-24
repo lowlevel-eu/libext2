@@ -67,6 +67,7 @@ static int mkdir(char* path)
         goto out_err;
     }
 
+    ext2_inode_dump(&new_inode);
     goto out;
 
 out_err:

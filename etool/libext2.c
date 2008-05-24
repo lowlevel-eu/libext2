@@ -55,6 +55,8 @@ static int dev_read(uint64_t start, size_t size, void* dest, void* prv)
 
 static int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
 {
+    printf("write to %0llx 0x%llx bytes\n", (unsigned long long) start,
+        (unsigned long long) size);
     if (lseek(fd, (off_t) start, SEEK_SET) == (off_t) -1) {
         return 0;
     }
@@ -85,6 +87,7 @@ int etool_img_init(const char* img)
 
 int etool_img_close()
 {
+    fsync(fd);
     close(fd);
     return 1;
 }
