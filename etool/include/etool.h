@@ -44,5 +44,8 @@ extern ext2_fs_t* fs;
 int etool_img_init(const char* img);
 int etool_img_close();
 
+char* etool_basename(const char* path);
+char* etool_dirname(const char* path);
+
 #endif // ndef _ETOOL_H_
 

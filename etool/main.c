@@ -50,6 +50,7 @@ struct tool {
 struct tool tools[] = {
     {"ls", etool_ls},
     {"cat", etool_cat},
+    {"mkdir", etool_mkdir},
     {"check", etool_check},
     {NULL, NULL}
 };
