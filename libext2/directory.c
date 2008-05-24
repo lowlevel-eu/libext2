@@ -280,7 +280,8 @@ int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
         return 0;
     }
 
-    bgnum = newi->number / newi->fs->sb->inodes_per_group;
+    bgnum = ext2_inode_to_internal(parent->fs, newi->number) /
+        newi->fs->sb->inodes_per_group;
 
     newi->raw.deletion_time = 0;
     newi->raw.mode = EXT2_INODE_MODE_DIR;
