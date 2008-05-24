@@ -234,7 +234,7 @@ int ext2_inode_free(ext2_inode_t* inode)
     bg.free_inodes++;
     ext2_bg_update(fs, bgnum, &bg);
 
-    void free_indirect_blocks(uint64_t table_block, int level) 
+    void free_indirect_blocks(uint64_t table_block, int level)
     {
         int i;
         uint32_t table[block_size / 4];

@@ -70,10 +70,10 @@ int etool_img_init(const char* img)
         perror("Image konnte nicht geoffnet werden");
         return 0;
     }
-    
+
     fs->dev_read = dev_read;
     fs->dev_write = dev_write;
-    
+
     if (!ext2_fs_mount(fs)) {
         fprintf(stderr, "Mounten fehlgeschlagen\n");
         close(fd);

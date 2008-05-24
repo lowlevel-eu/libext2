@@ -54,7 +54,8 @@ run_tests/$(1)/test: tests/$(1)/test etool/etool
 endef
 $(foreach test,$(TESTS),$(eval $(call TEST_template,$(test))))
 
-
+clean_tests:
+	@rm -f $(TESTS:%=tests/%/img.run)
 build_tests: $(TESTS:%=tests/%/test)
 run_tests: $(TESTS:%=run_tests/%/test)
 
@@ -86,7 +87,7 @@ clean-docu:
 # Allgemeine Targets
 ##############################################################################
 all: libext2 build_tests
-clean:
+clean: clean_tests
 	@rm -f $(ALL_OBJS) $(TESTS:%=tests/%/test) libtest.a libext2.a etool/etool
 
 %.o: %.c

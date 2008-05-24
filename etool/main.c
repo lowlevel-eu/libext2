@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
         printf("Unbekanntes Tool '%s'\n", tool_name);
         return -1;
     }
-    
+
     if (!etool_img_init(argv[1])) {
         return -1;
     }

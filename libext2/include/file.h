@@ -45,6 +45,7 @@
  *
  * @return 1 bei Erfolg, 0 sonst
  */
-int ext2_file_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi);
+int ext2_file_create(ext2_inode_t* parent, const char* name,
+    ext2_inode_t* newi);
 
 #endif
