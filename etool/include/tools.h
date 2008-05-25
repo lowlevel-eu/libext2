@@ -38,6 +38,7 @@
 
 int etool_ls(int argc, char* argv[]);
 int etool_cat(int argc, char* argv[]);
+int etool_cp(int argc, char* argv[]);
 int etool_mkdir(int argc, char* argv[]);
 
 int etool_check(int argc, char* argv[]);

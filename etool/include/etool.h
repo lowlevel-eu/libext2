@@ -38,6 +38,7 @@
 
 #include <ext2.h>
 #include "tools.h"
+#include "drivers.h"
 
 extern ext2_fs_t* fs;
 
