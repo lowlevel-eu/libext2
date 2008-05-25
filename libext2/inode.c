@@ -520,7 +520,7 @@ int ext2_inode_readdata(
     }
     memcpy(buf, localbuf + (start % block_size), len);
 
-    return 0;
+    return 1;
 }
 
 int ext2_inode_writedata(

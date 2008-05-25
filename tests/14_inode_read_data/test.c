@@ -29,7 +29,9 @@ int run_test(ext2_fs_t* fs)
     ext2_inode_readblk(&rootdir, 0, blkbuf);
     ext2_inode_readblk(&rootdir, 1, blkbuf + blksize);
 
-    ext2_inode_readdata(&rootdir, 0, blksize, databuf);
+    if (!ext2_inode_readdata(&rootdir, 0, blksize, databuf)) {
+        test_error("Fehler beim Einlesen der Daten");
+    }
     if (memcmp(databuf, blkbuf, blksize)) {
         test_error("databuf != blkbuf (0) fuer blksize, aligned");
     }
