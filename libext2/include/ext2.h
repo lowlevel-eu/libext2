@@ -101,5 +101,6 @@ int ext2_fs_mount(ext2_fs_t* fs);
 #include "inode.h"
 #include "directory.h"
 #include "file.h"
+#include "symlink.h"
 
 #endif

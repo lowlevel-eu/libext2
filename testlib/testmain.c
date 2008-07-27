@@ -62,6 +62,7 @@ static int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
         return 0;
     }
 
+//    fprintf(stderr, "dev_write: start = %8lx, size = %4ld \n", start, size);
     return (write(image_fd, dest, size) == size);
 }
 
