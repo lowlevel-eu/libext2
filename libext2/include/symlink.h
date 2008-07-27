@@ -57,4 +57,14 @@ char* ext2_symlink_read(ext2_inode_t* inode);
 int ext2_symlink_create(ext2_inode_t* parent,
     const char* name, const char* target, ext2_inode_t* newi);
 
+/**
+ * Pfad in einem Symlink aendern
+ *
+ * @param inode Inode des zu schreibenden Symlinks
+ * @param path  Neuer Pfad
+ *
+ * @return 1 bei Erfolg 0 sonst
+ */
+int ext2_symlink_write(ext2_inode_t* inode, const char* path);
+
 #endif

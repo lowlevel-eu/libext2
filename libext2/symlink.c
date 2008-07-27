@@ -113,3 +113,30 @@ char* ext2_symlink_read(ext2_inode_t* inode)
 
     return result;
 }
+
+/**
+ * Pfad in einem Symlink aendern
+ *
+ * @param inode Inode des zu schreibenden Symlinks
+ * @param path  Neuer Pfad
+ *
+ * @return 1 bei Erfolg 0 sonst
+ */
+int ext2_symlink_write(ext2_inode_t* inode, const char* path)
+{
+    inode->raw.size = strlen(path);
+
+    if (inode->raw.size < 15 * 4 - 1) {
+        strcpy((char*) inode->raw.blocks, path);
+    } else {
+        // Normale symlinks werden gleich wie regulaere Dateien behandelt
+        size_t res = ext2_inode_writedata(inode, 0, inode->raw.size, path);
+
+        if (!res) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
