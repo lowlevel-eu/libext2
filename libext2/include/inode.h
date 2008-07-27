@@ -232,7 +232,7 @@ int ext2_inode_readdata(
  * @return 1 wenn die Daten erfolgreich geschrieben wurden, 0 sonst
  */
 int ext2_inode_writedata(
-    ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
+    ext2_inode_t* inode, uint64_t start, size_t len, const void* buf);
 
 /**
  * Typ eines Inodes bestimmen

@@ -38,101 +38,61 @@
 
 #include "ext2.h"
 
-#if 0
 /**
  * Neuen Symlink erstellen
  *
- * @param parent Inodenummer des Elternverzeichnisses
+ * @param parent Inode des Elternverzeichnisses
  * @param name Name des neuen Symlinks
- * @param inode_dest falls != NULL wird hier die Inode-Nummer gespeichert
+ * @param target Ziel des neuen Symlinks
+ * @param newi Neu anzulegender Inode
  *
- * @return 0 bei Erfolg, im Fehlerfall < 0
+ * @return 1 bei Erfolg, 0 im Fehlerfall
  */
-int ext2_symlink_create(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
-    const char* name, uint32_t* inode_dest)
+int ext2_symlink_create(ext2_inode_t* parent,
+    const char* name, const char* target, ext2_inode_t* newi)
 {
-    uint32_t inode_num;
-    ext2_ih_t inode;
-    int result = 0;
-
     // Zuerst wird mal ein neuer Inode alloziert
-    inode_num = ext2_inode_allocate(root_handle);
-    if (inode_num == 0) {
-        print_error("Inode konnte nicht alloziert werden");
-        return -1;
-    }
-    
-    ext2_ih_init(root_handle, &inode, inode_num);
-    inode.modified = 1;
-
-    // Inode sauber initialisieren
-    memset(&inode, 0, sizeof(ext2_inode_t));
-    inode.data->mode = EXT2_INODE_MODE_SYMLINK;
-    
-    // Berechtigungen auf 666 setzen (nur fuer andere Betriebsysteme)
-    inode.data->mode |= EXT2_INODE_MODE_USER_READ | EXT2_INODE_MODE_USER_WRITE|
-        EXT2_INODE_MODE_GROUP_READ | EXT2_INODE_MODE_GROUP_WRITE |
-        EXT2_INODE_MODE_OTHER_READ | EXT2_INODE_MODE_OTHER_WRITE;
-    
-    // Jetzt noch abspeichern
-    if (ext2_inode_write(root_handle, &inode) != 0) {
-        print_error("Inode konnte nicht gespeichert werden");
-        result = -2;
-        goto end;
-    }
-        
-    // Im Elternverzeichnis einen Link darauf erstellen
-    if (ext2_dir_link(root_handle, parent, &inode, name) != 0) {
-        print_error("Fehler beim anlegen des Eintrages im Elternverzeichnis");
-        result = -5;
-        goto end;
-    }
-        
-    // Falls gewuenscht noch Inodenummer speichern
-    if (inode_dest != NULL) {
-        *inode_dest = inode_num;
+    if (!ext2_inode_alloc(parent->fs, newi)) {
+        return 0;
     }
 
-end:
-    ext2_ih_destroy(root_handle, &inode);
-    return result;
+    // Verzeichniseintrag anlegen
+    if (!ext2_dir_link(parent, newi, name)) {
+        return 0;
+    }
+
+    // Initialisierung des Inode
+    newi->raw.deletion_time = 0;
+    newi->raw.mode = EXT2_INODE_MODE_SYMLINK | 0777;
+    if (!ext2_inode_update(newi) ||
+        !ext2_inode_update(parent))
+    {
+        return 0;
+    }
+
+    // Ziel in den Symlink schreiben
+    if (!ext2_inode_writedata(newi, 0, strlen(target), target)) {
+        return 0;
+    }
+
+    if (!ext2_inode_update(newi)) {
+        return 0;
+    }
+
+
+    return 1;
 }
 
 /**
- * Symlink loeschen
+ * Pfad aus einem Symlink in einen frisch allozierten Buffer auslesen.
+ * Der Aufrufer ist dafuer zustaendig, den Buffer wieder freizugeben.
  *
- * @param parent Inodenummer des Elternverzeichnisses
- * @param name Name des Symlinks
- *
- * @return 0 bei Erfolg, < 0 im Fehlerfall
- */
-int ext2_symlink_delete(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
-    const char* name)
-{
-    // Link auf die Datei loeschen
-    if (ext2_dir_unlink(root_handle, parent, name) != 0) {
-        print_error("Verzeichniseintrag konnte nicht geloescht werden");
-        return -2;
-    }
-
-    return 0;
-}
-#endif
-
-
-/**
- * Pfad aus einem Symlink auslesen, das abschliessende Null-Byte wird _NICHT_
- * mitkopiert.
- *
- * @param inode
- * @param size Groesse des bereitgestellten Puffers
- * @param buffer Pointer auf den Buffer in den der Pfad kopiert werden soll
- *
- * @return 0 bei Erfolg, im Fehlerfall < 0
+ * @param inode Inode des auszulesenden Symlinks
  */
 char* ext2_symlink_read(ext2_inode_t* inode)
 {
-    char* result = malloc(inode->raw.size);
+    char* result = malloc(inode->raw.size + 1);
+    result[inode->raw.size] = '\0';
 
     // Bei Fast Symlinks wird das block-Array zur Speicherung des Pfades
     // benutzt, die Block-Anzahl ist dann 0
@@ -145,9 +105,7 @@ char* ext2_symlink_read(ext2_inode_t* inode)
         // Normale symlinks werden gleich wie regulaere Dateien behandelt
         size_t res = ext2_inode_readdata(inode, 0, inode->raw.size, result);
 
-        // Wenn nicht die erwartete Anzahl Bytes gelesen wurde, wird
-        // abgebrochen
-        if (res != inode->raw.size) {
+        if (!res) {
             free(result);
             return NULL;
         }

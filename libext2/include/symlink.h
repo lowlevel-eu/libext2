@@ -37,16 +37,24 @@
 #define _SYMLINK_H_
 
 /**
- * Pfad aus einem Symlink auslesen, das abschliessende Null-Byte wird _NICHT_
- * mitkopiert.
+ * Pfad aus einem Symlink in einen frisch allozierten Buffer auslesen.
+ * Der Aufrufer ist dafuer zustaendig, den Buffer wieder freizugeben.
  *
- * @param inode
- * @param size Groesse des bereitgestellten Puffers
- * @param buffer Pointer auf den Buffer in den der Pfad kopiert werden soll
- *
- * @return 0 bei Erfolg, im Fehlerfall < 0
+ * @param inode Inode des auszulesenden Symlinks
  */
 char* ext2_symlink_read(ext2_inode_t* inode);
 
+/**
+ * Neuen Symlink erstellen
+ *
+ * @param parent Inode des Elternverzeichnisses
+ * @param name Name des neuen Symlinks
+ * @param target Ziel des neuen Symlinks
+ * @param newi Neu anzulegender Inode
+ *
+ * @return 1 bei Erfolg, 0 im Fehlerfall
+ */
+int ext2_symlink_create(ext2_inode_t* parent,
+    const char* name, const char* target, ext2_inode_t* newi);
 
 #endif

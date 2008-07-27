@@ -138,10 +138,12 @@ static uint64_t inode_alloc(ext2_fs_t* fs, uint32_t bgnum)
     }
 
     // Freies Bit suchen
-    for (i = 0; i < fs->sb->inodes_per_group / 32; i++) {
+    for (i = 0; i < (fs->sb->inodes_per_group + 31) / 32; i++) {
         if (bitmap[i] != ~0) {
             for (j = 0; j < 32; j++) {
-                if ((bitmap[i] & (1 << j)) == 0) {
+                if (((bitmap[i] & (1 << j)) == 0)
+                    && (i * 32 + j <= fs->sb->inodes_per_group))
+                {
                     goto found;
                 }
             }
@@ -524,7 +526,7 @@ int ext2_inode_readdata(
 }
 
 int ext2_inode_writedata(
-    ext2_inode_t* inode, uint64_t start, size_t len, void* buf)
+    ext2_inode_t* inode, uint64_t start, size_t len, const void* buf)
 {
     size_t block_size = ext2_sb_blocksize(inode->fs->sb);
     uint64_t start_block = start / block_size;

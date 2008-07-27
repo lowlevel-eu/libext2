@@ -35,7 +35,8 @@
 
 #include "ext2.h"
 
-int ext2_file_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
+int ext2_file_create(ext2_inode_t* parent, const char* name, 
+    ext2_inode_t* newi)
 {
     // Neuen Inode alloziern
     if (!ext2_inode_alloc(parent->fs, newi)) {
@@ -49,7 +50,7 @@ int ext2_file_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
 
 
     newi->raw.deletion_time = 0;
-    newi->raw.mode = EXT2_INODE_MODE_FILE;
+    newi->raw.mode = EXT2_INODE_MODE_FILE | 0777;
     if (!ext2_inode_update(newi) ||
         !ext2_inode_update(parent))
     {
