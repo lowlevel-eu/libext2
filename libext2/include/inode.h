@@ -235,6 +235,11 @@ int ext2_inode_writedata(
     ext2_inode_t* inode, uint64_t start, size_t len, const void* buf);
 
 /**
+ * Laenge der Daten eines Inode aendern
+ */
+int ext2_inode_truncate(ext2_inode_t* inode, uint64_t size);
+
+/**
  * Typ eines Inodes bestimmen
  *
  * @param inode Pointer auf den Inode
