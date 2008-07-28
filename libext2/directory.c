@@ -160,7 +160,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
     ext2_dirent_t* newentry;
     char buf[dir->raw.size];
     uint64_t pos = 0;
-    size_t newentry_len = dirent_size(strlen(name));
+    size_t newentry_len = dirent_size(strlen(name) + 1);
     size_t entry_len = 0;
     ext2_inode_type_t type = 0;
 
@@ -190,7 +190,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
 
             // Neuen Eintrag befuellen
             newentry->name_len = strlen(name);
-            memcpy(newentry->name, name, newentry->name_len);
+            memcpy(newentry->name, name, newentry->name_len + 1);
             newentry->inode = inode->number;
             newentry->record_len = entry->record_len - entry_len;
             newentry->type = type;
@@ -215,7 +215,7 @@ int ext2_dir_link(ext2_inode_t* dir, ext2_inode_t* inode, const char* name)
         newentry = (ext2_dirent_t*) newbuf;
 
         newentry->name_len = strlen(name);
-        memcpy(newentry->name, name, newentry->name_len);
+        memcpy(newentry->name, name, newentry->name_len + 1);
         newentry->inode = inode->number;
         newentry->record_len = ext2_sb_blocksize(dir->fs->sb);
         newentry->type = type;
