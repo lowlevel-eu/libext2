@@ -305,14 +305,14 @@ static uint64_t block_alloc(ext2_fs_t* fs)
 
     // Bitmap laden
     bitmap_offset = ext2_sb_blocksize(fs->sb) * bg.block_bitmap;
-    if (!fs->dev_read(bitmap_offset, 4 * fs->sb->blocks_per_group, bitmap,
+    if (!fs->dev_read(bitmap_offset, fs->sb->blocks_per_group / 8, bitmap,
         fs->dev_private))
     {
         return 0;
     }
 
     // Freies Bit suchen
-    for (i = 0; i < fs->sb->blocks_per_group; i++) {
+    for (i = 0; i < fs->sb->blocks_per_group / 32; i++) {
         if (bitmap[i] != ~0) {
             for (j = 0; j < 32; j++) {
                 if ((bitmap[i] & (1 << j)) == 0) {
@@ -338,7 +338,7 @@ found:
 
     // Als besetzt markieren
     bitmap[i] |= (1 << j);
-    if (!fs->dev_write(bitmap_offset, 4 * fs->sb->blocks_per_group, bitmap,
+    if (!fs->dev_write(bitmap_offset, fs->sb->blocks_per_group / 8, bitmap,
         fs->dev_private))
     {
         return 0;
