@@ -26,8 +26,8 @@ int run_test(ext2_fs_t* fs)
     size_t blksize = ext2_sb_blocksize(&sb);
     char blkbuf[2 * blksize];
     char databuf[2 * blksize];
-    ext2_inode_readblk(&rootdir, 0, blkbuf);
-    ext2_inode_readblk(&rootdir, 1, blkbuf + blksize);
+    ext2_inode_readblk(&rootdir, 0, blkbuf, 1);
+    ext2_inode_readblk(&rootdir, 1, blkbuf + blksize, 1);
 
     if (!ext2_inode_readdata(&rootdir, 0, blksize, databuf)) {
         test_error("Fehler beim Einlesen der Daten");

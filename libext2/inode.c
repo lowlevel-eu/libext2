@@ -484,24 +484,48 @@ static uint64_t get_block_offset(
     return block_size * block_nr;
 }
 
-int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf)
+int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf,
+    size_t count)
 {
     ext2_fs_t* fs = inode->fs;
 
     uint64_t block_offset = get_block_offset(inode, block, 0);
     size_t   block_size = ext2_sb_blocksize(fs->sb);
 
+    // Zum suchen von zusammenhaengenden Blocks
+    uint64_t prev_offset;
+    uint64_t next_offset;
+    size_t i;
+    size_t read_cnt = 1;
+
+    
     // Ein paar Nullen fuer Sparse Files
     if (block_offset == 0) {
-        memset(buf, 0, block_size);
+        // TODO: Mehrere Sparse-Blocks
+        memset(buf, 0, block_size * count);
         return 1;
     }
 
-    if (!fs->dev_read(block_offset, block_size, buf, fs->dev_private)) {
+    // Zusammenhaengende Blocks zaehlen
+    prev_offset = block_offset;
+    for (i = 1; i < count; i++) {
+        if ((next_offset = get_block_offset(inode, block + i, 0)) ==
+            prev_offset + block_size)
+        {
+            prev_offset = next_offset;
+            read_cnt++;
+        } else {
+            break;
+        }
+    }
+
+    if (!fs->dev_read(block_offset, block_size * read_cnt, buf,
+        fs->dev_private))
+    {
         return 0;
     }
 
-    return 1;
+    return read_cnt;
 }
 
 static int writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
@@ -546,11 +570,15 @@ int ext2_inode_readdata(
 
     for (i = 0; i < block_count; i++) {
         ret = ext2_inode_readblk(inode, start_block + i,
-            localbuf + i * block_size);
+            localbuf + i * block_size, block_count - i);
 
         if (!ret) {
             return 0;
         }
+
+        // Wenn mehrere Blocks aneinander gelesen wurden, muessen die jetzt
+        // uebersprungen werden.
+        i += ret - 1;
     }
     memcpy(buf, localbuf + (start % block_size), len);
 
@@ -569,7 +597,7 @@ int ext2_inode_writedata(
 
     for (i = 0; i < block_count; i++) {
         ret = ext2_inode_readblk(inode, start_block + i,
-            localbuf + i * block_size);
+            localbuf + i * block_size, 1);
 
         if (!ret) {
             return 0;

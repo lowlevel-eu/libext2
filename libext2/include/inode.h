@@ -187,15 +187,17 @@ int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode);
 int ext2_inode_free(ext2_inode_t* inode);
 
 /**
- * Datenblock aus einem Inode einlesen
+ * Aneinanderhaengende Datenblocks aus einem Inode einlesen
  *
- * @param inode Inode aus dem der Block geladen werden soll
- * @param block Blocknummer
- * @param buf   Puffer in den der Block gelesen werden soll
+ * @param inode Inode aus dem die Blocks geladen werden sollen
+ * @param block Blocknummer des Ersten
+ * @param buf   Puffer in den die Blocks gelesen werden sollen
+ * @þaram count Anzahl der Blocks die maximal gelesen werden sollen
  *
- * @return 1 wenn der Block geladen werden soll, 0 sonst
+ * @return Anzahl der gelesenen Blocks
  */
-int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf);
+int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf,
+    size_t count);
 
 /**
  * Datenblock in einen Inode schreiben

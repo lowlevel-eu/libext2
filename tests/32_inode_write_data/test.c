@@ -9,8 +9,8 @@ static void check_buffer(ext2_inode_t* testfile, int a, int b)
     int i;
     unsigned char buf[4096];
 
-    ext2_inode_readblk(testfile, 0, &buf[0]);
-    ext2_inode_readblk(testfile, 1, &buf[1024]);
+    ext2_inode_readblk(testfile, 0, &buf[0], 1);
+    ext2_inode_readblk(testfile, 1, &buf[1024], 2);
 
     for (i = 0; i < 2048; i++) {
         if ((i < a) && (buf[i] != 0xaa)) {

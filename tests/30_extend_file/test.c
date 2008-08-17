@@ -51,7 +51,7 @@ int run_test(ext2_fs_t* fs)
     test_fsck();
 
     for (i = 3; i < 7; i++) {
-        if (!ext2_inode_readblk(&testfile, i, &pattern)) {
+        if (!ext2_inode_readblk(&testfile, i, &pattern, 1)) {
             test_error("Block %d konnte nicht eingelesen werden", i);
         }
 
