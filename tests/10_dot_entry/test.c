@@ -32,5 +32,7 @@ int run_test(ext2_fs_t* fs)
             ((ext2_dirent_t*) buf)->inode);
     }
 
+    ext2_fs_unmount(fs);
+
     return 0;
 }

@@ -32,6 +32,10 @@ int run_test(ext2_fs_t* fs)
         test_error("Inodenummer von '/a/b/c' stimmt nicht");
     }
 
+    if (!ext2_fs_unmount(fs)) {
+        test_interror("Unmounten fehlgeschlagen");
+    }
+
     return 0;
 }
 

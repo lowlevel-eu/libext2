@@ -74,6 +74,10 @@ int run_test(ext2_fs_t* fs)
     ext2_inode_writedata(&testfile, 0, 2048, &pattern);
     check_buffer(&testfile, 2048, 2048);
 
+    if (!ext2_fs_unmount(fs)) {
+        test_interror("Unmounten fehlgeschlagen");
+    }
+
     test_fsck();
 
     return 0;

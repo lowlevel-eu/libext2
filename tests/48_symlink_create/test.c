@@ -45,6 +45,10 @@ int run_test(ext2_fs_t* fs)
     }
     free(symlink);
 
+    if (!ext2_fs_unmount(fs)) {
+        test_interror("Unmounten fehlgeschlagen");
+    }
+
     test_fsck();
     test_etool();
 

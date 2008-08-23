@@ -90,3 +90,16 @@ int ext2_fs_mount(ext2_fs_t* fs)
     return 1;
 }
 
+int ext2_fs_unmount(ext2_fs_t* fs)
+{
+    // Sicherstellen, dass alle Aenderungen am Superblock geschrieben sind
+    if (!ext2_sb_update(fs, fs->sb)) {
+        return 0;
+    }
+
+    free(fs->sb);
+    fs->cache_destroy(fs->cache_handle);
+    fs->sb = fs->cache_handle = NULL;
+    return 1;
+}
+

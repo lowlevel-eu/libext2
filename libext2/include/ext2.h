@@ -171,6 +171,15 @@ typedef struct ext2_cache_block {
  */
 int ext2_fs_mount(ext2_fs_t* fs);
 
+/**
+ * ext2-Dateisystem aushaengen. Dabei werden saemtliche gecachten Daten auf die
+ * Platte geschrieben. Die Member sb und cache_handle in der fs-Struktur sind
+ * danach NULL.
+ *
+ * @return 1 bei Erfolg, im Fehlerfall 0
+ */
+int ext2_fs_unmount(ext2_fs_t* fs);
+
 
 #include "superblock.h"
 #include "blockgroup.h"
