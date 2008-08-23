@@ -144,6 +144,9 @@ typedef struct ext2_fs {
 
     /// Blocknummer in der der erste Superblock liegt
     uint64_t sb_block;
+
+    /// Darf vom Aufrufer benutzt werden
+    void* opaque;
 } ext2_fs_t;
 
 /**
