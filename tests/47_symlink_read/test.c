@@ -28,6 +28,7 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
+    free(dirent);
 
     if (!(symlink = ext2_symlink_read(&testfile))) {
         test_error("Konnte Symlink nicht einlesen");
@@ -37,6 +38,7 @@ int run_test(ext2_fs_t* fs)
         test_error("Symlink-Ziel erwartet: '%s', gelesen: '%s'",
             "/mnt/lost+found/", symlink);
     }
+    free(symlink);
 
     test_fsck();
     test_etool();

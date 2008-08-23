@@ -33,6 +33,7 @@ int run_test(ext2_fs_t* fs)
         if (!ext2_dir_unlink(&rootdir, files[i])) {
             test_error("ext2_dir_unlink(%s) gescheitert.", files[i]);
         }
+        free(files[i]);
 
         test_fsck();
         test_etool();
@@ -46,6 +47,8 @@ static int handle_dirent(ext2_dirent_t* dirent, void* prv)
     char* name = ext2_dir_alloc_name(dirent);
     if (strncmp("test", name, 4) == 0) {
         files[num_files++] = name;
+    } else {
+        free(name);
     }
     return 0;
 }

@@ -42,10 +42,12 @@ int run_test(ext2_fs_t* fs)
     if (strcmp(filename, "testfile")) {
         test_error("Eine falsche Datei wurde gefunden: %s", filename);
     }
+    free(filename);
 
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
+    free(dirent);
 
     for (i = 0; i < 1024; i++) {
         pattern[i] = 0x1337d00d;

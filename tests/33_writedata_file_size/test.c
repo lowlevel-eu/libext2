@@ -31,6 +31,7 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
+    free(dirent);
 
     memset(pattern, 0xaa, 4096);
     ext2_inode_writedata(&testfile, 1024, 465, &pattern);

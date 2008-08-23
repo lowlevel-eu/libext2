@@ -28,6 +28,7 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
+    free(dirent);
 
     size_t blksize = ext2_sb_blocksize(fs->sb);
     char buf[blksize];

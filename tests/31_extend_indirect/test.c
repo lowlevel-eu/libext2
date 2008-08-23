@@ -34,6 +34,7 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
+    free(dirent);
 
     for (i = 0; i < 1024; i++) {
         pattern[i] = 0xd00fc0de;

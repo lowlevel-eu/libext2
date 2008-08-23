@@ -29,6 +29,7 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
+    free(dirent);
 
 
     if (!ext2_inode_truncate(&testfile, 6000)) {

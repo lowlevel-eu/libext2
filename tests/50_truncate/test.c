@@ -28,6 +28,7 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
     }
+    free(dirent);
 
     if (testfile.raw.size != 65536) {
         test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw.size);
