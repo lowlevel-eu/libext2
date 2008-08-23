@@ -44,6 +44,15 @@ ext2_fs_t* fs = &fs_mem;
 
 static int fd;
 
+/**
+ * Cache-Struktur fuer libext2-Caches
+ */
+typedef struct cache {
+    size_t block_size;
+} cache_t;
+
+
+
 static int dev_read(uint64_t start, size_t size, void* dest, void* prv)
 {
     if (lseek(fd, (off_t) start, SEEK_SET) == (off_t) -1) {
@@ -64,6 +73,53 @@ static int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
     return (write(fd, dest, size) == size);
 }
 
+static void* cache_create(struct ext2_fs* fs, size_t block_size)
+{
+    cache_t* c = malloc(sizeof(c));
+    c->block_size = block_size;
+    return c;
+}
+
+static void cache_destroy(void* handle)
+{
+    cache_t* c = handle;
+    free(c);
+}
+
+static ext2_cache_block_t* cache_block(void* handle, uint64_t block, int noread)
+{
+    cache_t* c = handle;
+    ext2_cache_block_t* b = malloc(sizeof(*b));
+    size_t bs = c->block_size;
+
+    b->data = malloc(bs);
+    if (!noread) {
+        dev_read(block * bs, bs, b->data, NULL);
+    }
+    b->cache = handle;
+    b->number = block;
+    return b;
+}
+
+static void cache_block_dirty(ext2_cache_block_t* b)
+{
+    cache_t* c = b->cache;
+    size_t bs = c->block_size;
+
+    dev_write(b->number * bs, bs, b->data, NULL);
+}
+
+static void cache_block_free(ext2_cache_block_t* b, int dirty)
+{
+    if (dirty) {
+        cache_block_dirty(b);
+    }
+
+    free(b->data);
+    free(b);
+}
+
+
 int etool_img_init(const char* img)
 {
     fd = open(img, O_RDWR | O_EXCL);
@@ -75,6 +131,12 @@ int etool_img_init(const char* img)
 
     fs->dev_read = dev_read;
     fs->dev_write = dev_write;
+
+    fs->cache_create = cache_create;
+    fs->cache_destroy = cache_destroy;
+    fs->cache_block = cache_block;
+    fs->cache_block_dirty = cache_block_dirty;
+    fs->cache_block_free = cache_block_free;
 
     if (!ext2_fs_mount(fs)) {
         fprintf(stderr, "Mounten fehlgeschlagen\n");

@@ -41,13 +41,14 @@
 #include <signal.h>
 
 #include "test.h"
+#include "cache.h"
 
 jmp_buf exit_test;
 char* test_name;
 char* image_name;
 int image_fd;
 
-static int dev_read(uint64_t start, size_t size, void* dest, void* prv)
+int dev_read(uint64_t start, size_t size, void* dest, void* prv)
 {
     if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
         return 0;
@@ -56,7 +57,7 @@ static int dev_read(uint64_t start, size_t size, void* dest, void* prv)
     return (read(image_fd, dest, size) == size);
 }
 
-static int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
+int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
 {
     if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
         return 0;
@@ -65,7 +66,6 @@ static int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
 //    fprintf(stderr, "dev_write: start = %8lx, size = %4ld \n", start, size);
     return (write(image_fd, dest, size) == size);
 }
-
 
 static void sigsegv_handler(int sig)
 {
@@ -80,6 +80,12 @@ int main(int argc, char* argv[])
     fs.dev_read = dev_read;
     fs.dev_write = dev_write;
     fs.dev_private = NULL;
+
+    fs.cache_create = cache_create;
+    fs.cache_destroy = cache_destroy;
+    fs.cache_block = cache_block;
+    fs.cache_block_dirty = cache_block_dirty;
+    fs.cache_block_free = cache_block_free;
 
     signal(SIGSEGV, sigsegv_handler);
 

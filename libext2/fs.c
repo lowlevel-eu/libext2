@@ -66,11 +66,15 @@ static int fs_check_fast(ext2_fs_t* fs)
 int ext2_fs_mount(ext2_fs_t* fs)
 {
     fs->sb = malloc(sizeof(ext2_superblock_t));
+
     if (!ext2_sb_read(fs, fs->sb)) {
         free(fs->sb);
         fs->sb = NULL;
         return 0;
     }
+
+    fs->cache_handle = fs->cache_create(fs, ext2_sb_blocksize(fs->sb));
+
 
     // Die Blocknummer in der der Superblock liegt, variiert je nach
     // Blockgroesse, da der offset fix 1024 ist.
