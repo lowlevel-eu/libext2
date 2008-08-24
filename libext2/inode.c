@@ -595,6 +595,10 @@ int ext2_inode_readdata(
     char localbuf[block_size];
     int i, ret;
 
+    if (len == 0) {
+        return 1;
+    }
+
     // Wenn der erste Block nicht ganz gelesen werden soll, wird er zuerst in
     // einen Lokalen Puffer gelesen.
     if (start % block_size) {
