@@ -33,6 +33,17 @@ static uint64_t cache_time = 0;
 #endif
 
 /**
+ * Hints fuer die Suche im Cache
+ */
+struct hint {
+    /** Index */
+    size_t      index;
+
+    /** Block der dort gefunden werden kann */
+    uint64_t    block;
+};
+
+/**
  * Block im Cache
  */
 struct block {
@@ -84,6 +95,13 @@ struct cache {
 
     /** Anzahl Blocks die im Puffer sind */
     size_t              read_buffer_cnt;
+
+
+    /** Hints fuer Positionen */
+    struct hint         hints[8];
+
+    /** Zuletzt geschriebener hint-index */
+    uint16_t            prev_hint;
 };
 
 /**
@@ -142,9 +160,12 @@ struct cdi_cache* cdi_cache_create(size_t block_size, size_t blkpriv_len,
     cache->cache.block_size = block_size;
     cache->block_count = 1 * 1024 * 1024 / cache->cache.block_size;
     cache->blocks_used = 0;
+
     cache->read_buffer = malloc(cache->cache.block_size * READBUF_SZ);
     cache->read_buffer_block = INVBLKNUM;
     cache->read_buffer_cnt = 0;
+
+    cache->prev_hint = 0;
 
 
     cache->blocks = malloc(sizeof(struct block) * cache->block_count);
@@ -293,7 +314,7 @@ void caches_sync_all()
     }
 
     for (i = 0; (c = cdi_list_get(cache_list, i)); i++) {
-        if (!cache_sync((struct cdi_cache*) c)) {
+        if (!cdi_cache_sync((struct cdi_cache*) c)) {
             puts("cdi_cache: Fehler beim Syncen der Caches.");
         }
     }
@@ -358,6 +379,40 @@ static size_t search_position(struct cache* cache, uint64_t block,
 
 
 /**
+ * Hint suchen fuer eine Blocknummer
+ *
+ * @param block Blocknummer
+ *
+ * @return Index oder (size_t) -1 im Fehlerfall
+ */
+static inline size_t get_hint(struct cache* cache, uint64_t block)
+{
+    int i;
+
+    for (i = 0; i < sizeof(cache->hints) / sizeof(struct hint); i++) {
+        if (cache->hints[i].block == block) {
+            return cache->hints[i].index;
+        }
+    }
+
+    return -1;
+}
+
+/**
+ * Hint setzen
+ *
+ * @param block Blocknummer
+ * @param index Index an dem der Block gefunden werden kann
+ */
+static inline void put_hint(struct cache* cache, uint64_t block, size_t index)
+{
+    cache->prev_hint++;
+    cache->prev_hint %= sizeof(cache->hints) / sizeof(struct hint);
+    cache->hints[cache->prev_hint].block = block;
+    cache->hints[cache->prev_hint].index = index;
+}
+
+/**
  * Block in der Liste finden
  *
  * @param cache Handle
@@ -365,15 +420,20 @@ static size_t search_position(struct cache* cache, uint64_t block,
  *
  * @return Pointer auf den Block oder NULL wenn er nicht in der Liste ist
  */
-static struct block* block_find(struct cache* cache, uint64_t block)
+static inline struct block* block_find(struct cache* cache, uint64_t block)
 {
     size_t i;
+
+    i = get_hint(cache, block);
+    if ((i != -1) && (cache->blocks[i].cdi.number == block)) {
+        return cache->blocks + i;
+    }
 
     if (!search_position(cache, block, &i)) {
         return NULL;
     }
 
-
+    put_hint(cache, block, i);
     return cache->blocks + i;
 }
 
@@ -441,7 +501,7 @@ static inline size_t find_replaceable(struct cache* cache, uint64_t blocknum)
  *
  * @return 1 wenn ein Element gefunden wurde, 0 sonst
  */
-static size_t block_allocate(struct cache* cache, uint64_t blocknum,
+static inline size_t block_allocate(struct cache* cache, uint64_t blocknum,
     size_t* index)
 {
     struct block* b;
@@ -528,7 +588,8 @@ static size_t block_allocate(struct cache* cache, uint64_t blocknum,
  *
  * @return Pointer auf den Block
  */
-static struct block* block_load(struct cache* cache, uint64_t block, int read)
+static inline struct block* block_load(struct cache* cache, uint64_t block,
+    int read)
 {
     size_t index;
     struct block* b;
@@ -583,7 +644,8 @@ static struct block* block_load(struct cache* cache, uint64_t block, int read)
  *
  * @return Pointer auf den Block
  */
-static struct block* get_block(struct cache* cache, uint64_t block, int read)
+static inline struct block* get_block(struct cache* cache, uint64_t block,
+    int read)
 {
     struct block* b;
 
