@@ -592,12 +592,53 @@ int ext2_inode_readdata(
     uint64_t start_block = start / block_size;
     uint64_t end_block = (start + len - 1) / block_size;
     size_t block_count = end_block - start_block + 1;
-    char localbuf[block_count * block_size];
+    char localbuf[block_size];
     int i, ret;
 
+    // Wenn der erste Block nicht ganz gelesen werden soll, wird er zuerst in
+    // einen Lokalen Puffer gelesen.
+    if (start % block_size) {
+        size_t bytes;
+        size_t offset = start % block_size;
+
+        if (!ext2_inode_readblk(inode, start_block, localbuf, 1)) {
+            return 0;
+        }
+
+        bytes = block_size - offset;
+        if (len < bytes) {
+            bytes = len;
+        }
+        memcpy(buf, localbuf + offset, bytes);
+
+        if (--block_count == 0) {
+            return 1;
+        }
+        len -= bytes;
+        buf += bytes;
+        start_block++;
+    }
+
+    // Wenn der letzte Block nicht mehr ganz gelesen werden soll, muss er
+    // separat eingelesen werden.
+    if (len % block_size) {
+        size_t bytes = len % block_size;
+
+        if (!ext2_inode_readblk(inode, end_block, localbuf, 1)) {
+            return 0;
+        }
+        memcpy(buf + len - bytes, localbuf, bytes);
+
+        if (--block_count == 0) {
+            return 1;
+        }
+        len -= bytes;
+        end_block--;
+    }
+
     for (i = 0; i < block_count; i++) {
-        ret = ext2_inode_readblk(inode, start_block + i,
-            localbuf + i * block_size, block_count - i);
+        ret = ext2_inode_readblk(inode, start_block + i, buf + i * block_size,
+            block_count - i);
 
         if (!ret) {
             return 0;
@@ -607,7 +648,6 @@ int ext2_inode_readdata(
         // uebersprungen werden.
         i += ret - 1;
     }
-    memcpy(buf, localbuf + (start % block_size), len);
 
     return 1;
 }
