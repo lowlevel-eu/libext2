@@ -83,6 +83,7 @@ int main(int argc, char* argv[])
 
     fs.cache_create = cache_create;
     fs.cache_destroy = cache_destroy;
+    fs.cache_sync = cache_sync;
     fs.cache_block = cache_block;
     fs.cache_block_dirty = cache_block_dirty;
     fs.cache_block_free = cache_block_free;

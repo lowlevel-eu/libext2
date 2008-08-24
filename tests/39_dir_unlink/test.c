@@ -29,6 +29,7 @@ int run_test(ext2_fs_t* fs)
 
     ext2_dir_unlink(&rootdir, "testfile");
 
+    ext2_fs_sync(fs);
     test_fsck();
     test_etool();
 

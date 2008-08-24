@@ -35,6 +35,7 @@ int run_test(ext2_fs_t* fs)
         }
         free(files[i]);
 
+        ext2_fs_sync(fs);
         test_fsck();
         test_etool();
     }

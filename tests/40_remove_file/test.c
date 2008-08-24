@@ -34,6 +34,7 @@ int run_test(ext2_fs_t* fs)
         test_error("ext2_dir_unlink(testlink) gescheitert.");
     }
 
+    ext2_fs_sync(fs);
     test_fsck();
     test_etool();
 

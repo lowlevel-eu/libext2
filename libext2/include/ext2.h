@@ -99,6 +99,14 @@ typedef struct ext2_fs {
 
     /**
      * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
+     * schreibt alle veraenderten Cache-Blocks auf die Platte
+     *
+     * @param cache Handle
+     */
+    void (*cache_sync)(void* handle);
+
+    /**
+     * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
      * holt einen Block aus dem Cache und gibt einen Pointer auf ein
      * Block-Handle zrueck. Dieser Pointer ist mindestens solange gueltig, wie
      * das Handle nicht freigegeben wird.
@@ -161,6 +169,9 @@ typedef struct ext2_cache_block {
 
     /// Cache-Handle
     void* cache;
+
+    /// Daten fuer die Implementierung
+    void* opaque;
 } ext2_cache_block_t;
 
 /**
@@ -179,6 +190,11 @@ int ext2_fs_mount(ext2_fs_t* fs);
  * @return 1 bei Erfolg, im Fehlerfall 0
  */
 int ext2_fs_unmount(ext2_fs_t* fs);
+
+/**
+ * Saetmliche gecachten Daten auf die Platte schreiben
+ */
+void ext2_fs_sync(ext2_fs_t* fs);
 
 
 #include "superblock.h"

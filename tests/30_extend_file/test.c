@@ -49,6 +49,7 @@ int run_test(ext2_fs_t* fs)
         test_interror("Fehler beim Schreiben des Testdatei-Inode");
     }
 
+    ext2_fs_sync(fs);
     test_fsck();
 
     for (i = 3; i < 7; i++) {

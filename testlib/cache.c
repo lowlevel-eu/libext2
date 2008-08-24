@@ -34,33 +34,93 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <ext2.h>
 #include "test.h"
 #include "cache.h"
+#include "cdi_cache.h"
+
+extern int image_fd;
+
+/**
+ * Blocks fuer den Cache einlesen
+ *
+ * @param cache Cache-Handle
+ * @param block Blocknummer
+ * @param count Anzahl der zu lesenden BLocks
+ * @param dest  Pointer auf Puffer in dem die Daten abgelegt werde sollen.
+ * @param prv   Pointer auf unser fs
+ *
+ * @return Anzahl der gelesenen Blocks
+ */
+static int read_block(struct cdi_cache* cache, uint64_t block, size_t count,
+    void* dest, void* prv)
+{
+    uint64_t start = block * cache->block_size;
+
+    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
+        return 0;
+    }
+
+    return read(image_fd, dest, count * cache->block_size) / cache->block_size;
+}
+
+/**
+ * Blocks fuer den Cache schreiben
+ *
+ * @param cache Cache-Handle
+ * @param block Blocknummer
+ * @param count Anzahl der zu schreibenden Blocks
+ * @param src   Pointer auf Puffer aus dem die Daten gelesen werden sollen.
+ * @param prv   Pointer auf unser fs
+ *
+ * @return Anzahl der geschriebenen Blocks
+ */
+static int write_block(struct cdi_cache* cache, uint64_t block, size_t count,
+    const void* src, void* prv)
+{
+    uint64_t start = block * cache->block_size;
+
+    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
+        return 0;
+    }
+
+    return write(image_fd, src, count * cache->block_size) / cache->block_size;
+}
+
 
 void* cache_create(struct ext2_fs* fs, size_t block_size)
 {
-    cache_t* c = malloc(sizeof(*c));
-    c->block_size = block_size;
-    return c;
+    return cdi_cache_create(block_size, sizeof(ext2_cache_block_t),
+        read_block, write_block, fs);
 }
 
 void cache_destroy(void* handle)
 {
-    cache_t* c = handle;
-    free(c);
+    cdi_cache_destroy(handle);
+}
+
+void cache_sync(void* handle)
+{
+    if (!cdi_cache_sync(handle)) {
+        puts("cache: Sync fehlgeschlagen");
+    }
 }
 
 ext2_cache_block_t* cache_block(void* handle, uint64_t block, int noread)
 {
-    cache_t* c = handle;
-    ext2_cache_block_t* b = malloc(sizeof(*b));
-    size_t bs = c->block_size;
+    struct cdi_cache* c = handle;
+    struct cdi_cache_block* cdi_b;
+    ext2_cache_block_t* b;
 
-    b->data = malloc(bs);
-    if (!noread) {
-        dev_read(block * bs, bs, b->data, NULL);
+    if (!(cdi_b = cdi_cache_block_get(c, block))) {
+        return NULL;
     }
+
+    b = cdi_b->private;
+    b->opaque = cdi_b;
+    b->data = cdi_b->data;
     b->cache = handle;
     b->number = block;
     return b;
@@ -68,19 +128,21 @@ ext2_cache_block_t* cache_block(void* handle, uint64_t block, int noread)
 
 void cache_block_dirty(ext2_cache_block_t* b)
 {
-    cache_t* c = b->cache;
-    size_t bs = c->block_size;
+    struct cdi_cache* c = b->cache;
+    struct cdi_cache_block* cdi_b = b->opaque;
 
-    dev_write(b->number * bs, bs, b->data, NULL);
+    cdi_cache_block_dirty(c, cdi_b);
 }
 
 void cache_block_free(ext2_cache_block_t* b, int dirty)
 {
+    struct cdi_cache* c = b->cache;
+    struct cdi_cache_block* cdi_b = b->opaque;
+
     if (dirty) {
         cache_block_dirty(b);
     }
 
-    free(b->data);
-    free(b);
+    cdi_cache_block_release(c, cdi_b);
 }
 

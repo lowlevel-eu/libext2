@@ -103,3 +103,8 @@ int ext2_fs_unmount(ext2_fs_t* fs)
     return 1;
 }
 
+void ext2_fs_sync(ext2_fs_t* fs)
+{
+    fs->cache_sync(fs->cache_handle);
+}
+
