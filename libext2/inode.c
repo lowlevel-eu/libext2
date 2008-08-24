@@ -555,7 +555,7 @@ int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf,
     return read_cnt;
 }
 
-static int writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
+static int writeblk(ext2_inode_t* inode, uint64_t block, const void* buf)
 {
     ext2_fs_t* fs = inode->fs;
 
@@ -663,28 +663,67 @@ int ext2_inode_writedata(
     uint64_t start_block = start / block_size;
     uint64_t end_block = (start + len - 1) / block_size;
     size_t block_count = end_block - start_block + 1;
-    char localbuf[block_count * block_size];
+    char localbuf[block_size];
     int i, ret;
 
+    // Wenn der erste Block nicht ganz geschrieben werden soll, wird er zuerst
+    // in einen Lokalen Puffer gelesen werden, damit nichts ueberschrieben wird.
+    if (start % block_size) {
+        size_t bytes;
+        size_t offset = start % block_size;
+
+        if (!ext2_inode_readblk(inode, start_block, localbuf, 1)) {
+            return 0;
+        }
+
+        bytes = block_size - offset;
+        if (len < bytes) {
+            bytes = len;
+        }
+        memcpy(localbuf + offset, buf, bytes);
+
+        if (!writeblk(inode, start_block, localbuf)) {
+            return 0;
+        }
+
+        if (--block_count == 0) {
+            goto out;
+        }
+        len -= bytes;
+        buf += bytes;
+        start_block++;
+    }
+
+    // Wenn der letzte Block nicht mehr ganz geschrieben werden soll, muss er
+    // zuerst eingelesen werden, damit nichts ueberschrieben wird.
+    if (len % block_size) {
+        size_t bytes = len % block_size;
+
+        if (!ext2_inode_readblk(inode, end_block, localbuf, 1)) {
+            return 0;
+        }
+        memcpy(localbuf, buf + len - bytes, bytes);
+
+        if (!writeblk(inode, end_block, localbuf)) {
+            return 0;
+        }
+
+        if (--block_count == 0) {
+            goto out;
+        }
+        len -= bytes;
+        end_block--;
+    }
+
     for (i = 0; i < block_count; i++) {
-        ret = ext2_inode_readblk(inode, start_block + i,
-            localbuf + i * block_size, 1);
+        ret = writeblk(inode, start_block + i, buf + i * block_size);
 
         if (!ret) {
             return 0;
         }
     }
 
-    memcpy(localbuf + (start % block_size), buf, len);
-
-    for (i = 0; i < block_count; i++) {
-        ret = writeblk(inode, start_block + i, localbuf + i * block_size);
-
-        if (!ret) {
-            return 0;
-        }
-    }
-
+out:
     if (start + len > inode->raw.size) {
         inode->raw.size = start + len;
     }
