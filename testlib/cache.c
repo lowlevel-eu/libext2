@@ -40,7 +40,7 @@
 
 void* cache_create(struct ext2_fs* fs, size_t block_size)
 {
-    cache_t* c = malloc(sizeof(c));
+    cache_t* c = malloc(sizeof(*c));
     c->block_size = block_size;
     return c;
 }
