@@ -684,6 +684,7 @@ int ext2_inode_writedata(
     size_t block_count = end_block - start_block + 1;
     char localbuf[block_size];
     int i, ret;
+    size_t req_len = len;
 
     // Wenn der erste Block nicht ganz geschrieben werden soll, wird er zuerst
     // in einen Lokalen Puffer gelesen werden, damit nichts ueberschrieben wird.
@@ -743,8 +744,8 @@ int ext2_inode_writedata(
     }
 
 out:
-    if (start + len > inode->raw.size) {
-        inode->raw.size = start + len;
+    if (start + req_len > inode->raw.size) {
+        inode->raw.size = start + req_len;
     }
 
     return 1;
