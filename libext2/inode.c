@@ -597,8 +597,8 @@ int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
     size_t block_size = ext2_sb_blocksize(inode->fs->sb);
     int ret = writeblk(inode, block, buf);
 
-    if (block * block_size > inode->raw.size) {
-        inode->raw.size = block * block_size;
+    if ((block + 1) * block_size > inode->raw.size) {
+        inode->raw.size = (block + 1) * block_size;
     }
 
     return ret;
