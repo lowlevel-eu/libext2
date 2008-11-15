@@ -285,6 +285,11 @@ int ext2_inode_free(ext2_inode_t* inode)
         }
     }
 
+    // Abbrechen bei fast-Symlinks
+    if (!inode->raw.block_count) {
+        return 1;
+    }
+
     // Blocks freigeben
     for (i = 0; i < 15; i++) {
         if (inode->raw.blocks[i]) {
