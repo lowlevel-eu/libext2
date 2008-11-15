@@ -1,12 +1,11 @@
 #  Konvertier *.c in *.o
 OBJECT_FILES = $(addsuffix .o,$(basename $(1)))
 
-
 LL_OBJS= $(LIBEXT2_OBJ)
 
 TESTS= $(notdir $(wildcard tests/*))
 
-CFLAGS += -Wall -Werror -O2 -g
+CFLAGS += -O2 -Wall -Werror -g
 
 ##############################################################################
 # Targets fuer etool
@@ -46,7 +45,11 @@ $(1)_OBJ := $$(call OBJECT_FILES,$$($(1)_SRC))
 ALL_OBJS+= $$($(1)_OBJ)
 tests/$(1)/test: CFLAGS+= -I libext2/include -I testlib -L .
 tests/$(1)/test: libext2.a libtest.a $$($(1)_OBJ)
-	@$(CC) -L . -o tests/$(1)/test $$($(1)_OBJ) -lext2 -ltest
+	@$(CC) $(CFLAGS) -L . -o tests/$(1)/test $$($(1)_OBJ) -lext2 -ltest
+
+run_valgrind_tests/$(1)/test: tests/$(1)/test etool/etool
+	@bzcat tests/$(1)/image.bz2 > tests/$(1)/img.run
+	@(valgrind -q --leak-check=full --show-reachable=yes tests/$(1)/test tests/$(1)/img.run && rm tests/$(1)/img.run) || true
 
 run_tests/$(1)/test: tests/$(1)/test etool/etool
 	@bzcat tests/$(1)/image.bz2 > tests/$(1)/img.run
@@ -58,6 +61,7 @@ clean_tests:
 	@rm -f $(TESTS:%=tests/%/img.run)
 build_tests: $(TESTS:%=tests/%/test)
 run_tests: $(TESTS:%=run_tests/%/test)
+run_valgrind_tests: $(TESTS:%=run_valgrind_tests/%/test)
 
 ##############################################################################
 # Targets fuer libext2

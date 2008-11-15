@@ -165,6 +165,7 @@ struct cdi_cache* cdi_cache_create(size_t block_size, size_t blkpriv_len,
     cache->read_buffer_block = INVBLKNUM;
     cache->read_buffer_cnt = 0;
 
+    memset(cache->hints, 0, sizeof(cache->hints));
     cache->prev_hint = 0;
 
 
@@ -207,11 +208,6 @@ void cdi_cache_destroy(struct cdi_cache* cache)
     // Einzelne Blocks freigeben
     for (i = 0; i < c->block_count; i++) {
         b = c->blocks + i;
-
-        // Ungueltige Blocks ueberspringen
-        if (b->cdi.number == INVBLKNUM) {
-            continue;
-        }
 
         if (b->ref_count) {
             printf("cdi_cache: Beim Zerstoeren des Caches wurde ein Block "
