@@ -178,7 +178,7 @@ static uint64_t inode_alloc(ext2_fs_t* fs, uint32_t bgnum)
 
     // Freies Bit suchen
     for (i = 0; i < (fs->sb->inodes_per_group + 31) / 32; i++) {
-        if (bitmap[i] != ~0) {
+        if (bitmap[i] != ~0U) {
             for (j = 0; j < 32; j++) {
                 if (((bitmap[i] & (1 << j)) == 0)
                     && (i * 32 + j <= fs->sb->inodes_per_group))
@@ -266,7 +266,7 @@ int ext2_inode_free(ext2_inode_t* inode)
 
     void free_indirect_blocks(uint64_t table_block, int level)
     {
-        int i;
+        uint32_t i;
         uint32_t table[block_size / 4];
 
         if (!fs->dev_read(table_block * block_size, block_size, table,
@@ -305,7 +305,7 @@ int ext2_inode_free(ext2_inode_t* inode)
 
 static int block_alloc_bg(ext2_fs_t* fs)
 {
-    int i;
+    uint32_t i;
     ext2_blockgroup_t bg;
 
     for (i = 0; i < ext2_sb_bgcount(fs->sb); i++) {
@@ -341,10 +341,10 @@ static uint64_t block_alloc(ext2_fs_t* fs)
     size_t   block_size = ext2_sb_blocksize(fs->sb);
     uint8_t  buf[block_size];
     ext2_cache_block_t* block;
-    int bgnum;
+    uint32_t bgnum;
 
     bgnum = block_alloc_bg(fs);
-    if (bgnum == -1) {
+    if (bgnum == (uint32_t) -1) {
         return 0;
     }
 
@@ -359,10 +359,10 @@ static uint64_t block_alloc(ext2_fs_t* fs)
     if (fs->block_prev_alloc &&
         (fs->block_prev_alloc /fs->sb->blocks_per_group == bgnum))
     {
-        int first_j = fs->block_prev_alloc % 32;
-        int first_i = fs->block_prev_alloc / 32;
+        uint32_t first_j = fs->block_prev_alloc % 32;
+        uint32_t first_i = fs->block_prev_alloc / 32;
         for (i = first_i;i < fs->sb->blocks_per_group / 32; i++) {
-            if (bitmap[i] != ~0) {
+            if (bitmap[i] != ~0U) {
                 j = (i == first_i) ? first_j : 0;
                 for (; j < 32; j++) {
                     if ((bitmap[i] & (1 << j)) == 0) {
@@ -375,7 +375,7 @@ static uint64_t block_alloc(ext2_fs_t* fs)
 
     // Freies Bit suchen
     for (i = 0; i < fs->sb->blocks_per_group / 32; i++) {
-        if (bitmap[i] != ~0) {
+        if (bitmap[i] != ~0U) {
             for (j = 0; j < 32; j++) {
                 if ((bitmap[i] & (1 << j)) == 0) {
                     goto found;
@@ -617,7 +617,8 @@ int ext2_inode_readdata(
     uint64_t end_block = (start + len - 1) / block_size;
     size_t block_count = end_block - start_block + 1;
     char localbuf[block_size];
-    int i, ret;
+    uint32_t i;
+    int ret;
 
     if (len == 0) {
         return 1;
@@ -688,7 +689,8 @@ int ext2_inode_writedata(
     uint64_t end_block = (start + len - 1) / block_size;
     size_t block_count = end_block - start_block + 1;
     char localbuf[block_size];
-    int i, ret;
+    uint32_t i;
+    int ret;
     size_t req_len = len;
 
     // Wenn der erste Block nicht ganz geschrieben werden soll, wird er zuerst

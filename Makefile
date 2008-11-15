@@ -6,6 +6,7 @@ LL_OBJS= $(LIBEXT2_OBJ)
 TESTS= $(notdir $(wildcard tests/*))
 
 CFLAGS += -O2 -Wall -Werror -g
+CFLAGS_LIBEXT2 += -Wextra -Wno-unused-parameter
 
 ##############################################################################
 # Targets fuer etool
@@ -73,8 +74,9 @@ LIBEXT2_SRC= $(wildcard libext2/*.c)
 LIBEXT2_OBJ= $(call OBJECT_FILES,$(LIBEXT2_SRC))
 ALL_OBJS+= $(LIBEXT2_OBJ)
 
-libext2.a: $(LIBEXT2_OBJ)
+libext2.a: $(LIBEXT2_OBJ) 
 	@ar rs $@ $^
+$(LIBEXT2_OBJ): CFLAGS += $(CFLAGS_LIBEXT2)
 libext2: libext2.a
 
 
