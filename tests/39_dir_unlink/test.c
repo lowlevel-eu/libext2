@@ -39,6 +39,7 @@ int run_test(ext2_fs_t* fs)
         test_error("Erwartet: 4 Dateien, gelesen %d", i);
     }
 
+    ext2_inode_release(&rootdir);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

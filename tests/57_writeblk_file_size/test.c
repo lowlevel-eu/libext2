@@ -33,6 +33,7 @@ int run_test(ext2_fs_t* fs)
     if (!dirent) {
         test_error("Datei /testfile wurde nicht gefunden");
     }
+    ext2_inode_release(&rootdir);
 
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
@@ -42,18 +43,19 @@ int run_test(ext2_fs_t* fs)
     memset(pattern, 0xaa, 4096);
     ext2_inode_writeblk(&testfile, 1, &pattern);
 
-    if (testfile.raw.size != 1024 + bs) {
+    if (testfile.raw->size != 1024 + bs) {
         test_error("Dateigroesse != 1024 + bs");
     }
 
     ext2_inode_writeblk(&testfile, 0, &pattern);
 
-    if (testfile.raw.size != 1024 + bs) {
+    if (testfile.raw->size != 1024 + bs) {
         test_error("Dateigroesse != 1024 + bs [2]");
     }
 
     ext2_inode_update(&testfile);
 
+    ext2_inode_release(&testfile);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

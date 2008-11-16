@@ -21,6 +21,7 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_dir_unlink(&rootdir, "fastsymlink")) {
         test_error("ext2_dir_unlink(fastsymlink) gescheitert.");
     }
+    ext2_inode_release(&rootdir);
 
     ext2_fs_sync(fs);
     test_fsck();

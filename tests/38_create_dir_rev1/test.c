@@ -25,6 +25,8 @@ int run_test(ext2_fs_t* fs)
         test_error("Fehler beim Anlegen des Verzeichnisses");
     }
 
+    ext2_inode_release(&rootdir);
+    ext2_inode_release(&newdir);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

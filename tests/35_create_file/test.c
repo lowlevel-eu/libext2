@@ -25,6 +25,9 @@ int run_test(ext2_fs_t* fs)
         test_error("Fehler beim Anlegen der Datei");
     }
 
+    ext2_inode_release(&rootdir);
+    ext2_inode_update(&newfile);
+    ext2_inode_release(&newfile);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

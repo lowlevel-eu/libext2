@@ -73,7 +73,10 @@ struct cache {
     /** Anzahl der benutzten Blocks */
     size_t              blocks_used;
 
-    /** Blockliste (sortiert nach offset) */
+    /** Blockliste sortiert nach offset */
+    struct block**      blocks_ordered;
+
+    /** Blockliste */
     struct block*       blocks;
 
 
@@ -170,8 +173,10 @@ struct cdi_cache* cdi_cache_create(size_t block_size, size_t blkpriv_len,
 
 
     cache->blocks = malloc(sizeof(struct block) * cache->block_count);
+    cache->blocks_ordered = malloc(sizeof(struct block*) * cache->block_count);
     for (i = 0; i < cache->block_count; i++) {
         struct block* block = cache->blocks + i;
+        cache->blocks_ordered[i] = block;
 
         block->cdi.number = INVBLKNUM;
         block->cdi.data = malloc(cache->cache.block_size);
@@ -226,6 +231,7 @@ void cdi_cache_destroy(struct cdi_cache* cache)
     }
 
     free(c->blocks);
+    free(c->blocks_ordered);
     free(c->read_buffer);
     free(c);
 }
@@ -282,7 +288,7 @@ int cdi_cache_sync(struct cdi_cache* cache)
     size_t i;
 
     for (i = 0; i < c->block_count; i++) {
-        b = c->blocks + i;
+        b = c->blocks_ordered[i];
 
         // Sobald ein Eintrag mit INVBLKNUM erreicht wird, ist das Durchsuchen
         // beendet
@@ -335,10 +341,10 @@ static size_t search_position(struct cache* cache, uint64_t block,
     size_t pos;
 
     // Pruefen ob offset ueberhaupt im Array enthalten ist
-    if (block < cache->blocks[0].cdi.number) {
+    if (block < cache->blocks_ordered[0]->cdi.number) {
         *dest = 0;
         return 0;
-    } else if (block > cache->blocks[top].cdi.number) {
+    } else if (block > cache->blocks_ordered[top]->cdi.number) {
         // Wenn noch freie Blocks im Cache existieren wird der Index auf den
         // naechst freien gelegt
         if (top < cache->block_count - 1) {
@@ -352,9 +358,9 @@ static size_t search_position(struct cache* cache, uint64_t block,
     do {
         pos = bottom + (top - bottom) / 2;
 
-        if (cache->blocks[pos].cdi.number == block) {
+        if (cache->blocks_ordered[pos]->cdi.number == block) {
             break;
-        } else if (cache->blocks[pos].cdi.number > block) {
+        } else if (cache->blocks_ordered[pos]->cdi.number > block) {
             top = pos - 1;
         } else {
             bottom = pos + 1;
@@ -370,7 +376,7 @@ static size_t search_position(struct cache* cache, uint64_t block,
 
     *dest = pos;
 
-    return (cache->blocks[pos].cdi.number == block);
+    return (cache->blocks_ordered[pos]->cdi.number == block);
 }
 
 
@@ -421,8 +427,8 @@ static inline struct block* block_find(struct cache* cache, uint64_t block)
     size_t i;
 
     i = get_hint(cache, block);
-    if ((i != -1) && (cache->blocks[i].cdi.number == block)) {
-        return cache->blocks + i;
+    if ((i != -1) && (cache->blocks_ordered[i]->cdi.number == block)) {
+        return cache->blocks_ordered[i];
     }
 
     if (!search_position(cache, block, &i)) {
@@ -430,7 +436,7 @@ static inline struct block* block_find(struct cache* cache, uint64_t block)
     }
 
     put_hint(cache, block, i);
-    return cache->blocks + i;
+    return cache->blocks_ordered[i];
 }
 
 
@@ -449,12 +455,13 @@ static inline size_t find_replaceable(struct cache* cache, uint64_t blocknum)
     size_t la_index = cache->block_count;
 
     // Wenn noch unbenzte Blocks existieren, dann gehoert der letzte sicher dazu
-    if (cache->blocks[cache->block_count - 1].cdi.number == INVBLKNUM) {
+    if (cache->blocks_ordered[cache->block_count - 1]->cdi.number == INVBLKNUM)
+    {
         return cache->block_count - 1;
     }
 
     for (i = 0; i < cache->blocks_used; i++) {
-        b = cache->blocks + i;
+        b = cache->blocks_ordered[i];
 
         // Solte nicht passieren
         if (b->cdi.number == INVBLKNUM) {
@@ -474,15 +481,17 @@ static inline size_t find_replaceable(struct cache* cache, uint64_t blocknum)
         // es genommen werden. Andernfalls wird geprueft ob das element aelter
         // ist
         if ((la_index == cache->block_count) || (b->access_time <
-            cache->blocks[la_index].access_time))
+            cache->blocks_ordered[la_index]->access_time))
         {
             la_index = i;
         }
     }
 
     // Falls das Element dirty ist, muss es gespeichert werden
-    if ((la_index != cache->block_count) && (cache->blocks[la_index].dirty)) {
-        cache_sync_block(cache, cache->blocks + la_index);
+    if ((la_index != cache->block_count) &&
+        (cache->blocks_ordered[la_index]->dirty))
+    {
+        cache_sync_block(cache, cache->blocks_ordered[la_index]);
     }
     return la_index;
 }
@@ -501,8 +510,8 @@ static inline size_t block_allocate(struct cache* cache, uint64_t blocknum,
     size_t* index)
 {
     struct block* b;
-    void* data;
-    void* private;
+    //void* data;
+    //void* private;
 
     // Index an dem der neue Block spaeter im Array liegt
     size_t dest;
@@ -528,14 +537,15 @@ static inline size_t block_allocate(struct cache* cache, uint64_t blocknum,
 
     // Wenn der Block bisher nicht benutzt wurde, muss used Blocks erhoeht
     // werden
-    if (cache->blocks[i].cdi.number == INVBLKNUM) {
+    if (cache->blocks_ordered[i]->cdi.number == INVBLKNUM) {
         cache->blocks_used++;
     }
 
     // Pointer auf daten des zu ersetzenden Blocks speichern, da die
     // ueberschrieben werden, beim memmove
-    data = cache->blocks[i].cdi.data;
-    private = cache->blocks[i].cdi.private;
+    /*data = cache->blocks[i].cdi.data;
+    private = cache->blocks[i].cdi.private;*/
+    b = cache->blocks_ordered[i];
 
     // Jetzt muessen die Array-Elemente so verschoben werden, dass die stelle an
     // mit dem index dest frei wird und dafuer die mit index i ueberschrieben
@@ -547,25 +557,25 @@ static inline size_t block_allocate(struct cache* cache, uint64_t blocknum,
             dest--;
         }
 
-        memmove(cache->blocks + i, cache->blocks + i + 1, (dest - i) *
-            sizeof(struct block));
+        memmove(cache->blocks_ordered + i, cache->blocks_ordered + i + 1,
+            (dest - i) * sizeof(struct block*));
     } else if (i > dest) {
         // Wenn wird die Elemente nach oben verschieben, muss das zielelement
         // groesser sein, als das aktuelle
-        if ((cache->blocks[dest].cdi.number < blocknum) &&
+        if ((cache->blocks_ordered[dest]->cdi.number < blocknum) &&
             (dest < cache->block_count - 1))
         {
             dest++;
         }
 
-        memmove(cache->blocks + dest + 1, cache->blocks + dest, (i - dest) *
-            sizeof(struct block));
+        memmove(cache->blocks_ordered + dest + 1, cache->blocks_ordered + dest,
+            (i - dest) * sizeof(struct block*));
     }
 
-    b = cache->blocks + dest;
-    b->cdi.data = data;
+    cache->blocks_ordered[dest] = b;
+    // b->cdi.data = data;
     b->cdi.number = blocknum;
-    b->cdi.private = private;
+    // b->cdi.private = private;
     b->access_time = ++cache_time;
     b->dirty = 0;
     b->ref_count = 0;
@@ -596,7 +606,7 @@ static inline struct block* block_load(struct cache* cache, uint64_t block,
         return NULL;
     }
 
-    b = cache->blocks + index;
+    b = cache->blocks_ordered[index];
 
     if (read) {
         uint64_t bnum = cache->read_buffer_block;

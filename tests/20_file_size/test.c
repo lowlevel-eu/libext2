@@ -11,7 +11,7 @@
 int run_test(ext2_fs_t* fs)
 {
     ext2_inode_t rootdir;
-    rootdir.raw.size = 0;
+    rootdir.raw->size = 0;
 
     ext2_fs_mount(fs);
 
@@ -19,10 +19,11 @@ int run_test(ext2_fs_t* fs)
         test_error("Inode konnte nicht eingelesen werden");
     }
 
-    if (rootdir.raw.size != 1024) {
-        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw.size);
+    if (rootdir.raw->size != 1024) {
+        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw->size);
     }
 
+    ext2_inode_release(&rootdir);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

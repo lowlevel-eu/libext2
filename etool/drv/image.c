@@ -98,15 +98,15 @@ static int img_close(void** private)
 static uint64_t img_size(void** private)
 {
     struct imgpriv* ip = *private;
-    return ip->inode.raw.size;
+    return ip->inode.raw->size;
 }
 
 static int img_read(void* buf, int size, void** private)
 {
     struct imgpriv* ip = *private;
 
-    if ((uint64_t) size > ip->inode.raw.size - ip->pos) {
-        size = ip->inode.raw.size - ip->pos;
+    if ((uint64_t) size > ip->inode.raw->size - ip->pos) {
+        size = ip->inode.raw->size - ip->pos;
     }
 
     if (!ext2_inode_readdata(&ip->inode, ip->pos, size, buf)) {

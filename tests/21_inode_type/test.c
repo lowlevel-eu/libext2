@@ -41,6 +41,9 @@ int run_test(ext2_fs_t* fs)
         test_error("Symlink-Inode nicht als solcher erkannt");
     }
 
+    ext2_inode_release(&file);
+    ext2_inode_release(&dir);
+    ext2_inode_release(&symlink);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

@@ -43,8 +43,8 @@ int ext2_file_create(ext2_inode_t* parent, const char* name,
         return 0;
     }
 
-    newi->raw.deletion_time = 0;
-    newi->raw.mode = EXT2_INODE_MODE_FILE | 0777;
+    newi->raw->deletion_time = 0;
+    newi->raw->mode = EXT2_INODE_MODE_FILE | 0777;
 
     // Verzeichniseintrag anlegen
     if (!ext2_dir_link(parent, newi, name)) {

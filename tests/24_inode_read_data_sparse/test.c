@@ -24,6 +24,7 @@ int run_test(ext2_fs_t* fs)
     if (!dirent) {
         test_error("Datei /file wurde nicht gefunden");
     }
+    ext2_inode_release(&rootdir);
 
     if (!ext2_inode_read(fs, dirent->inode, &testfile)) {
         test_interror("Fehler beim Lesen des Testdatei-Inode");
@@ -42,6 +43,7 @@ int run_test(ext2_fs_t* fs)
         test_error("buf != cmp_buf");
     }
 
+    ext2_inode_release(&testfile);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

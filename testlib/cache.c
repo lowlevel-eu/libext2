@@ -43,6 +43,8 @@
 
 extern int image_fd;
 
+#undef DEBUG
+
 /**
  * Blocks fuer den Cache einlesen
  *
@@ -123,6 +125,10 @@ ext2_cache_block_t* cache_block(void* handle, uint64_t block, int noread)
     b->data = cdi_b->data;
     b->cache = handle;
     b->number = block;
+
+#ifdef DEBUG
+    printf("cache_block(%d)\n", (unsigned int) b->number);
+#endif
     return b;
 }
 
@@ -131,6 +137,9 @@ void cache_block_dirty(ext2_cache_block_t* b)
     struct cdi_cache* c = b->cache;
     struct cdi_cache_block* cdi_b = b->opaque;
 
+#ifdef DEBUG
+    printf("cache_block_dirty(%d)\n", (unsigned int) b->number);
+#endif
     cdi_cache_block_dirty(c, cdi_b);
 }
 
@@ -138,6 +147,10 @@ void cache_block_free(ext2_cache_block_t* b, int dirty)
 {
     struct cdi_cache* c = b->cache;
     struct cdi_cache_block* cdi_b = b->opaque;
+
+#ifdef DEBUG
+    printf("cache_block_free(%d)\n", (unsigned int) b->number);
+#endif
 
     if (dirty) {
         cache_block_dirty(b);

@@ -23,6 +23,7 @@ int run_test(ext2_fs_t* fs)
     if (!(dirent = ext2_dir_get(&rootdir, "testdir"))) {
         test_interror("Verzeichniseintrag testdir nicht gefunden");
     }
+
     if (!ext2_inode_read(fs, dirent->inode, &testdir)) {
         test_interror("tesdir-Inode konnte nicht geladen werden");
     }
@@ -36,11 +37,13 @@ int run_test(ext2_fs_t* fs)
     if (!ext2_dir_unlink(&rootdir, "testdir")) {
         test_error("ext2_dir_unlink(testdir) gescheitert.");
     }
+    ext2_inode_release(&rootdir);
 
     ext2_fs_sync(fs);
     test_fsck();
     test_etool();
 
+    ext2_inode_release(&testdir);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }
