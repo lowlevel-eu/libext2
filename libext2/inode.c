@@ -265,13 +265,11 @@ int ext2_inode_free(ext2_inode_t* inode)
     void free_indirect_blocks(uint64_t table_block, int level)
     {
         uint32_t i;
-        uint32_t table[block_size / 4];
+        uint32_t* table;
+        ext2_cache_block_t* block;
 
-        if (!fs->dev_read(table_block * block_size, block_size, table,
-            fs->dev_private))
-        {
-            return;
-        }
+        block = fs->cache_block(fs->cache_handle, table_block, 0);
+        table = block->data;
 
         for (i = 0; i < block_size / 4; i++) {
             if (table[i]) {
@@ -281,6 +279,8 @@ int ext2_inode_free(ext2_inode_t* inode)
                 block_free(inode->fs, table[i]);
             }
         }
+
+        fs->cache_block_free(block, 1);
     }
 
     // Abbrechen bei fast-Symlinks
