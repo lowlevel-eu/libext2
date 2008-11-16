@@ -80,7 +80,11 @@ void test_fsck()
     char* cmdline;
     fsync(image_fd);
 
-    asprintf(&cmdline, "/sbin/e2fsck -fn %s > /dev/null 2>&1", image_name);
+    asprintf(&cmdline, "cp %s tmp.img", image_name);
+    system(cmdline);
+    free(cmdline);
+
+    asprintf(&cmdline, "/sbin/e2fsck -fy tmp.img > /dev/null 2>&1");
     if (system(cmdline)) {
         test_error("fsck hat einen Fehler gemeldet");
     }
