@@ -513,7 +513,7 @@ static uint64_t get_block_offset(
             inode->raw->blocks[12] = 0;
             inode->raw->block_count -= block_size / 512;
         }
-    } else {
+    } else if (block < ((block_size / 4) * ((block_size / 4) + 1) + 12)) {
         if (inode->raw->blocks[13] == 0) {
             inode->raw->blocks[13] = block_alloc(fs);
             inode->raw->block_count += block_size / 512;
@@ -524,6 +524,19 @@ static uint64_t get_block_offset(
             inode->raw->blocks[13], alloc == 1 ? 1 : 0), alloc);
 
         // FIXME Beim Loeschen werden "Vaterknoten" nicht mitgeloescht
+    } else {
+        if (inode->raw->blocks[14] == 0) {
+            inode->raw->blocks[14] = block_alloc(fs);
+            inode->raw->block_count += block_size / 512;
+        }
+
+        block -= 12 + (block_size / 4) * ((block_size / 4) + 1);
+        block_nr = get_indirect_block_nr(block % (block_size / 4),
+            get_indirect_block_nr(block / (block_size / 4) % (block_size / 4),
+            get_indirect_block_nr(block / (block_size / 4) / (block_size / 4),
+            inode->raw->blocks[14], alloc == 1 ? 1 : 0), alloc == 1 ? 1 : 0),
+            alloc);
+        // FIXME Beim Loeschen werden "Vaterknoten" nicht mitgeloescht""
     }
     return block_size * block_nr;
 }
