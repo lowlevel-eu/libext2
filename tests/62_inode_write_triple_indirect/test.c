@@ -4,7 +4,7 @@
 #include <test.h>
 
 /**
- * Test:  inode_write_tripple_indirect
+ * Test:  inode_write_triple_indirect
  * Autor: Antoine Kaufmann
  * Zweck: Schreiben und wieder Einlesen eines dreifach indirekten Blocks
  */
