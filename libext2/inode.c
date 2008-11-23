@@ -489,6 +489,7 @@ static uint64_t get_block_offset(
     ext2_cache_block_t* b;
     // Wird zum freigeben von Blocks benoetigt
     uint64_t path[4][2];
+    memset(path, 0, sizeof(path));
 
     ext2_fs_t* fs = inode->fs;
     block_size = ext2_sb_blocksize(fs->sb);
@@ -506,7 +507,6 @@ static uint64_t get_block_offset(
         inode->raw->block_count += block_size / 512;
     }
     path[0][0] = block_nr;
-    path[0][1] = 0;
 
     // Indirekte Blocks heraussuchen und ggf. allozieren
     for (i = 0;  (i < level) && block_nr; i++) {
@@ -530,7 +530,6 @@ static uint64_t get_block_offset(
         // Pfad fuers Freigeben der Blocks speichern
         path[i][1] = offset;
         path[i + 1][0] = block_nr;
-        path[i + 1][1] = 0;
 
         // Block allozieren wenn noetig und gewuenscht
         if (!block_nr && (alloc == 1)) {
@@ -550,6 +549,7 @@ static uint64_t get_block_offset(
     int empty = 1;
     for (i = level; (i > 0) && empty; i--) {
         int was_empty = empty;
+
         b = fs->cache_block(fs->cache_handle, path[i - 1][0], 0);
         table = b->data;
 
@@ -564,7 +564,7 @@ static uint64_t get_block_offset(
             }
         }
 
-        if (was_empty) {
+        if (was_empty && path[i][0]) {
             table[path[i - 1][1]] = 0;
             block_free(fs, path[i][0]);
             inode->raw->block_count -= block_size / 512;
@@ -801,13 +801,11 @@ int ext2_inode_truncate(ext2_inode_t* inode, uint64_t size)
     size_t block_size = ext2_sb_blocksize(inode->fs->sb);
     uint64_t first_to_free = (size / block_size) + 1;
     uint64_t last_to_free =
-        ((inode->raw->size + block_size - 1) / block_size) - 1;
+        ((inode->raw->size + block_size - 1) / block_size);
     uint64_t i;
 
     for (i = first_to_free; i <= last_to_free; i++) {
-        if (!get_block_offset(inode, i, 2)) {
-            return 0;
-        }
+        get_block_offset(inode, i, 2);
     }
 
     inode->raw->size = size;
