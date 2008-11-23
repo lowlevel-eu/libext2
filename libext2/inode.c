@@ -436,107 +436,150 @@ static uint64_t block_free(ext2_fs_t* fs, uint64_t num)
     return 1;
 }
 
+/**
+ * Berechnet wie oft indirekt dieser Block ist im Inode.
+ *
+ * @param inode          Betroffener Inode
+ * @param block          Blocknummer
+ * @param direct_block   Pointer auf die Variable fuer den Index in der
+ *                       Blocktabelle des Inodes.
+ * @param indirect_block Pointer auf die Variable fuer den Index in den
+ *                       indirekten Blocktabellen. Wird auf 0 gesetzt fuer
+ *                       direkte Blocks.
+ *
+ * @return Ein Wert von 0-3 je nach dem wie oft der Block indirekt ist
+ */
+static inline int get_indirect_block_level(ext2_inode_t* inode, uint64_t block,
+    uint64_t* direct_block, uint64_t* indirect_block)
+{
+    ext2_fs_t* fs = inode->fs;
+    size_t block_size = ext2_sb_blocksize(fs->sb);
+
+    if (block < 12) {
+        *direct_block = block;
+        *indirect_block = 0;
+        return 0;
+    } else if (block < ((block_size / 4) + 12)) {
+        *direct_block = 12;
+        *indirect_block = block - 12;
+        return 1;
+    } else if (block < ((block_size / 4) * ((block_size / 4) + 1) + 12)) {
+        *direct_block = 13;
+        *indirect_block = block - 12 - (block_size / 4);
+        return 2;
+    } else {
+        *direct_block = 14;
+        *indirect_block = block - 12 - (block_size / 4) *
+            ((block_size / 4) + 1);
+        return 3;
+    }
+}
+
 static uint64_t get_block_offset(
     ext2_inode_t* inode, uint64_t block, int alloc)
 {
-    size_t   block_size;
-    uint64_t block_nr;
+    size_t    block_size;
+    uint64_t  block_nr;
+    uint64_t  indirect_block;
+    uint64_t  direct_block;
+    int       level;
+    int       i;
+    uint32_t  j;
+    uint32_t* table;
+    ext2_cache_block_t* b;
+    // Wird zum freigeben von Blocks benoetigt
+    uint64_t path[4][2];
 
     ext2_fs_t* fs = inode->fs;
     block_size = ext2_sb_blocksize(fs->sb);
 
-    // TODO Doppelt und dreifach indirekte Blocks allozieren
-    uint64_t get_indirect_block_nr(uint64_t index, uint64_t table_block, 
-        int alloc)
-    {
-        ext2_cache_block_t* b = fs->cache_block(fs->cache_handle, table_block,
-            0);
-        uint64_t result = 0;
-        int table_modified = 0;
-        uint32_t* table;
 
-        if (!b) {
-            return 0;
-        }
+    // Herausfinden wie oft indirekt der gesuchte Block ist
+    level = get_indirect_block_level(inode, block, &direct_block,
+        &indirect_block);
+
+    // Direkte Blocknummer oder Nummer des ersten Tabellenblocks aus dem Inode
+    // lesen
+    block_nr = inode->raw->blocks[direct_block];
+    if (!block_nr && (alloc == 1)) {
+        block_nr = inode->raw->blocks[direct_block] = block_alloc(fs);
+        inode->raw->block_count += block_size / 512;
+    }
+    path[0][0] = block_nr;
+    path[0][1] = 0;
+
+    // Indirekte Blocks heraussuchen und ggf. allozieren
+    for (i = 0;  (i < level) && block_nr; i++) {
+        int table_modified;
+        uint64_t offset;
+        uint64_t pow;
+
+        b = fs->cache_block(fs->cache_handle, block_nr, 0);
         table = b->data;
 
-        if ((table[index] == 0) && (alloc == 1)) {
-            table[index] = block_alloc(fs);
+        // pow = (block_size / 4) ** (level - i - 1)
+        pow = (level - i == 3 ? ((block_size / 4) * (block_size / 4)) :
+            (level - i == 2 ? (block_size / 4) : 1));
+        offset = indirect_block / pow;
+        indirect_block %= pow;
+
+
+        table_modified = 0;
+        block_nr = table[offset];
+
+        // Pfad fuers Freigeben der Blocks speichern
+        path[i][1] = offset;
+        path[i + 1][0] = block_nr;
+        path[i + 1][1] = 0;
+
+        // Block allozieren wenn noetig und gewuenscht
+        if (!block_nr && (alloc == 1)) {
+            block_nr = table[offset] = block_alloc(fs);
             inode->raw->block_count += block_size / 512;
-            fs->cache_block_dirty(b);
-        }
-
-        if (alloc == 2) {
-            block_free(fs, table[index]);
-            table[index] = 0;
             table_modified = 1;
-            inode->raw->block_count -= block_size / 512;
-
-            size_t i;
-            for (i = 0; i < block_size / 4; i++) {
-                if (table[i]) {
-                    result = 1;
-                    goto out;
-                }
-            }
-            result = 2;
-        } else {
-            result = table[index];
         }
-
-    out:
         fs->cache_block_free(b, table_modified);
-        return result;;
     }
 
-    if ((block < 12) && (block < ((block_size / 4) + 12))) {
-        block_nr = inode->raw->blocks[block];
-        if ((block_nr == 0) && (alloc == 1)) {
-            block_nr = inode->raw->blocks[block] = block_alloc(fs);
-            inode->raw->block_count += block_size / 512;
+    // Wenn der Block nicht freigegeben werden soll, sind wir jetzt fertig
+    if (alloc != 2) {
+        return block_size * block_nr;
+    }
+
+    // Blocks freigeben
+    int empty = 1;
+    for (i = level; (i > 0) && empty; i--) {
+        int was_empty = empty;
+        b = fs->cache_block(fs->cache_handle, path[i - 1][0], 0);
+        table = b->data;
+
+        // Wenn es sich um einen Tabellenblock handelt, muss er leer sein
+        // (Hier wird eigentlich der naechste gepfrueft... das funktioniert aber
+        // so, da wir nur in die Schleife kommen wenn es sich um einen
+        // indirekten Block handelt, und da der oberste Block bei i = level
+        // nicht geprueft werden muss, da er nur ein Datenblock ist.
+        for (j = 0; (j < block_size / 4) && empty; j++) {
+            if (table[j]) {
+                empty = 0;
+            }
         }
 
-        if (alloc == 2) {
-            block_free(fs, inode->raw->blocks[block]);
-            inode->raw->blocks[block] = 0;
+        if (was_empty) {
+            table[path[i - 1][1]] = 0;
+            block_free(fs, path[i][0]);
             inode->raw->block_count -= block_size / 512;
         }
-    } else if (block < ((block_size / 4) + 12)) {
-        if (inode->raw->blocks[12] == 0) {
-            inode->raw->blocks[12] = block_alloc(fs);
-            inode->raw->block_count += block_size / 512;
-        }
-        block_nr =
-            get_indirect_block_nr(block - 12, inode->raw->blocks[12], alloc);
-        if ((alloc == 2) && (block_nr == 2)) {
-            block_free(fs, inode->raw->blocks[12]);
-            inode->raw->blocks[12] = 0;
-            inode->raw->block_count -= block_size / 512;
-        }
-    } else if (block < ((block_size / 4) * ((block_size / 4) + 1) + 12)) {
-        if (inode->raw->blocks[13] == 0) {
-            inode->raw->blocks[13] = block_alloc(fs);
-            inode->raw->block_count += block_size / 512;
-        }
-        block -= 12 + (block_size / 4);
-        block_nr = get_indirect_block_nr(block % (block_size / 4),
-            get_indirect_block_nr(block / (block_size / 4),
-            inode->raw->blocks[13], alloc == 1 ? 1 : 0), alloc);
 
-        // FIXME Beim Loeschen werden "Vaterknoten" nicht mitgeloescht
-    } else {
-        if (inode->raw->blocks[14] == 0) {
-            inode->raw->blocks[14] = block_alloc(fs);
-            inode->raw->block_count += block_size / 512;
-        }
+        fs->cache_block_free(b, was_empty);
+    }
 
-        block -= 12 + (block_size / 4) * ((block_size / 4) + 1);
-        block_nr = get_indirect_block_nr(block % (block_size / 4),
-            get_indirect_block_nr(block / (block_size / 4) % (block_size / 4),
-            get_indirect_block_nr(block / (block_size / 4) / (block_size / 4),
-            inode->raw->blocks[14], alloc == 1 ? 1 : 0), alloc == 1 ? 1 : 0),
-            alloc);
-        // FIXME Beim Loeschen werden "Vaterknoten" nicht mitgeloescht""
+    // Der Letzte muss manuell freigegeben werden, da er nicht in einer
+    // Blocktabelle eingetragen ist.
+    if (!path[0][1] && path[0][0] && empty) {
+        inode->raw->blocks[direct_block] = 0;
+
+        inode->raw->block_count -= block_size / 512;
+        block_free(fs, path[0][0]);
     }
     return block_size * block_nr;
 }
