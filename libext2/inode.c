@@ -598,7 +598,7 @@ int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf,
 
         // Ein paar Nullen fuer Sparse Files
         if (offset == 0) {
-            memset(buf, 0, block_size);
+            memset(buf + block_size * i, 0, block_size);
             continue;
         }
 
