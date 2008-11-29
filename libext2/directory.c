@@ -246,7 +246,7 @@ int ext2_dir_unlink(ext2_inode_t* dir, const char* name)
 
         // Eintrag als unbenutzt markieren
         if ((strlen(name) == entry->name_len) &&
-            !strncmp(name, entry->name, entry->name_len))
+            !strncmp(name, entry->name, entry->name_len) && entry->inode)
         {
             if (!ext2_inode_read(dir->fs, entry->inode, &inode)) {
                 return 0;
