@@ -55,6 +55,7 @@ int run_test(ext2_fs_t* fs)
         test_error("Fehler beim Einlesen der Sparse-Bloecke.");
     }
 
+    ext2_inode_release(&testfile);
     ext2_inode_release(&rootdir);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
