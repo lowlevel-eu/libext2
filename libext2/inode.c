@@ -301,14 +301,21 @@ int ext2_inode_free(ext2_inode_t* inode)
     return 1;
 }
 
-static int block_alloc_bg(ext2_fs_t* fs)
+static int block_alloc_bg(ext2_fs_t* fs, ext2_blockgroup_t* bg)
 {
     uint32_t i;
-    ext2_blockgroup_t bg;
+
+    i = fs->block_prev_alloc /fs->sb->blocks_per_group;
+    if (i < ext2_sb_bgcount(fs->sb)) {
+        ext2_bg_read(fs, i, bg);
+        if (bg->free_blocks) {
+            return i;
+        }
+    }
 
     for (i = 0; i < ext2_sb_bgcount(fs->sb); i++) {
-        ext2_bg_read(fs, i, &bg);
-        if (bg.free_blocks) {
+        ext2_bg_read(fs, i, bg);
+        if (bg->free_blocks) {
             return i;
         }
     }
@@ -339,14 +346,12 @@ static uint64_t block_alloc(ext2_fs_t* fs)
     size_t   block_size = ext2_sb_blocksize(fs->sb);
     ext2_cache_block_t* block;
     uint32_t bgnum;
+    ext2_blockgroup_t bg;
 
-    bgnum = block_alloc_bg(fs);
+    bgnum = block_alloc_bg(fs, &bg);
     if (bgnum == (uint32_t) -1) {
         return 0;
     }
-
-    ext2_blockgroup_t bg;
-    ext2_bg_read(fs, bgnum, &bg);
 
     // Bitmap laden
     block = bbitmap_get_block(fs, &bg);
