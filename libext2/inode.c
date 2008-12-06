@@ -338,13 +338,14 @@ static inline ext2_cache_block_t* bbitmap_get_block(
 }
 
 
-static uint64_t block_alloc(ext2_fs_t* fs)
+static uint64_t block_alloc(ext2_fs_t* fs, int set_zero)
 {
     uint32_t* bitmap;
     uint64_t block_num;
     uint32_t i, j;
     size_t   block_size = ext2_sb_blocksize(fs->sb);
     ext2_cache_block_t* block;
+    ext2_cache_block_t* new_block;
     uint32_t bgnum;
     ext2_blockgroup_t bg;
 
@@ -392,10 +393,13 @@ static uint64_t block_alloc(ext2_fs_t* fs)
 found:
     block_num = fs->sb->blocks_per_group * bgnum + (i * 32 + j) +
         fs->sb->first_data_block;
-    // Mit Nullen initialisieren
-    ext2_cache_block_t* nb = fs->cache_block(fs->cache_handle, block_num, 0);
-    memset(nb->data, 0, block_size);
-    fs->cache_block_free(nb, 1);
+
+    // Mit Nullen initialisieren, falls gewuenscht
+    if (set_zero) {
+        new_block = fs->cache_block(fs->cache_handle, block_num, 1);
+        memset(new_block->data, 0, block_size);
+        fs->cache_block_free(new_block, 1);
+    }
 
     // Als besetzt markieren
     bitmap[i] |= (1 << j);
@@ -508,7 +512,7 @@ static uint64_t get_block_offset(
     // lesen
     block_nr = inode->raw->blocks[direct_block];
     if (!block_nr && (alloc == 1)) {
-        block_nr = inode->raw->blocks[direct_block] = block_alloc(fs);
+        block_nr = inode->raw->blocks[direct_block] = block_alloc(fs, level);
         inode->raw->block_count += block_size / 512;
     }
     path[0][0] = block_nr;
@@ -538,7 +542,7 @@ static uint64_t get_block_offset(
 
         // Block allozieren wenn noetig und gewuenscht
         if (!block_nr && (alloc == 1)) {
-            block_nr = table[offset] = block_alloc(fs);
+            block_nr = table[offset] = block_alloc(fs, (level - i) > 1);
             inode->raw->block_count += block_size / 512;
             table_modified = 1;
         }
