@@ -246,6 +246,23 @@ int ext2_inode_readdata(
 int ext2_inode_writedata(
     ext2_inode_t* inode, uint64_t start, size_t len, const void* buf);
 
+#define EXT2_OFF_SPARSE (-1ULL)
+
+/**
+ * Offset mehrerer Datenblocks des Inodes auf dem Speichermedium feststellen.
+ * Blocks die nicht alloziert wurden bisher, erhalten den Wert EXT2_OFF_SPARSE,
+ * auch wenn sie nach dem Ende der Datei liegen.
+ *
+ * @param inode Inode
+ * @param block Nummer des ersten Blocks
+ * @param count Anzahl der einzufuellenden Blocks
+ * @param buf   Array in das die Blocknummern eingetragen werden sollen
+ *
+ * @return 1 wenn die Offsets erfolgreich eingetragen wurden, 0 sonst
+ */
+int ext2_inode_blockoffsets(
+    ext2_inode_t* inode, uint64_t block, size_t count, uint64_t buf[count]);
+
 /**
  * Laenge der Daten eines Inode aendern
  */

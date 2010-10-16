@@ -623,6 +623,22 @@ int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf,
     return count;
 }
 
+int ext2_inode_blockoffsets( ext2_inode_t* inode, uint64_t block, size_t count,
+    uint64_t buf[count])
+{
+    size_t i;
+
+    for (i = 0; i < count; i++) {
+        buf[i] = get_block_offset(inode, block + i, 0);
+        if (!buf[i]) {
+            buf[i] = EXT2_OFF_SPARSE;
+        }
+    }
+
+    return 1;
+}
+
+
 static int writeblk(ext2_inode_t* inode, uint64_t block, const void* buf)
 {
     ext2_fs_t* fs = inode->fs;
