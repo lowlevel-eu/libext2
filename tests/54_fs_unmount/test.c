@@ -14,17 +14,16 @@ int run_test(ext2_fs_t* fs)
         test_error("Mounten fehlgeschlagen");
     }
 
-    if (!fs->sb || !fs->cache_handle) {
-        test_interror("Superblock oder Cache-handle nach dem Mounten == NULL");
+    if (!fs->sb) {
+        test_interror("Superblock nach dem Mounten == NULL");
     }
 
     if (!ext2_fs_unmount(fs)) {
         test_error("Unmounten fehlgeschlagen");
     }
 
-    if (fs->sb || fs->cache_handle) {
-        test_error("Superblock oder Cache-handle nach dem Unmounten != "
-            "NULL");
+    if (fs->sb) {
+        test_error("Superblock nach dem Unmounten != NULL");
     }
 
     return 0;

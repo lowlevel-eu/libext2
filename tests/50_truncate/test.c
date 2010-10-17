@@ -30,16 +30,16 @@ int run_test(ext2_fs_t* fs)
     }
     free(dirent);
 
-    if (testfile.raw->size != 65536) {
-        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw->size);
+    if (testfile.raw.size != 65536) {
+        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw.size);
     }
 
     if (!ext2_inode_truncate(&testfile, 6000)) {
         test_error("Fehler in truncate");
     }
 
-    if (testfile.raw->size != 6000) {
-        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw->size);
+    if (testfile.raw.size != 6000) {
+        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw.size);
     }
 
     ext2_inode_release(&testfile);

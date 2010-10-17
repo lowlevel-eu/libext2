@@ -53,15 +53,15 @@ static void cat(const char* path)
     }
 
     {
-        char buf[inode.raw->size];
+        char buf[inode.raw.size];
         int i;
 
-        if (ext2_inode_readdata(&inode, 0, inode.raw->size, buf)) {
+        if (ext2_inode_readdata(&inode, 0, inode.raw.size, buf)) {
             fprintf(stderr, "Fehler: Einlesen der Daten fehlgeschlagen!\n");
             return;
         }
 
-        for (i = 0; i < inode.raw->size; i++) {
+        for (i = 0; i < inode.raw.size; i++) {
             printf("%c", buf[i]);
         }
     }

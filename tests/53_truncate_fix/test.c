@@ -36,8 +36,8 @@ int run_test(ext2_fs_t* fs)
         test_error("Fehler in truncate");
     }
 
-    if (testfile.raw->size != 6000) {
-        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw->size);
+    if (testfile.raw.size != 6000) {
+        test_error("Eingelesene Groesse (%d) stimmt nicht", rootdir.raw.size);
     }
 
     ext2_inode_release(&testfile);

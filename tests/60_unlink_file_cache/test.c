@@ -31,11 +31,12 @@ int run_test(ext2_fs_t* fs)
     for (i = 0; i < 64; i++) {
         ext2_inode_writedata(&newfile, i * 1024, 1024, buffer);
     }
+    ext2_inode_update(&newfile);
+    ext2_inode_release(&newfile);
 
     if (!ext2_dir_unlink(&rootdir, "newfile")) {
         test_error("ext2_dir_unlink(testfile) gescheitert.");
     }
-    ext2_inode_update(&newfile);
     ext2_inode_update(&rootdir);
 
     ext2_fs_sync(fs);
@@ -43,7 +44,6 @@ int run_test(ext2_fs_t* fs)
     test_etool();
 
     ext2_inode_release(&rootdir);
-    ext2_inode_release(&newfile);
     if (!ext2_fs_unmount(fs)) {
         test_interror("Unmounten fehlgeschlagen");
     }

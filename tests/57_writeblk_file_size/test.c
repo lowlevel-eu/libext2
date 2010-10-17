@@ -43,13 +43,13 @@ int run_test(ext2_fs_t* fs)
     memset(pattern, 0xaa, 4096);
     ext2_inode_writeblk(&testfile, 1, &pattern);
 
-    if (testfile.raw->size != 1024 + bs) {
+    if (testfile.raw.size != 1024 + bs) {
         test_error("Dateigroesse != 1024 + bs");
     }
 
     ext2_inode_writeblk(&testfile, 0, &pattern);
 
-    if (testfile.raw->size != 1024 + bs) {
+    if (testfile.raw.size != 1024 + bs) {
         test_error("Dateigroesse != 1024 + bs [2]");
     }
 

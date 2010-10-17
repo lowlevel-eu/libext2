@@ -73,7 +73,6 @@ int ext2_fs_mount(ext2_fs_t* fs)
         return 0;
     }
 
-    fs->cache_handle = fs->cache_create(fs, ext2_sb_blocksize(fs->sb));
     fs->block_prev_alloc = 0;
 
     // Die Blocknummer in der der Superblock liegt, variiert je nach
@@ -98,13 +97,11 @@ int ext2_fs_unmount(ext2_fs_t* fs)
     }
 
     free(fs->sb);
-    fs->cache_destroy(fs->cache_handle);
-    fs->sb = fs->cache_handle = NULL;
+    fs->sb = NULL;
     return 1;
 }
 
 void ext2_fs_sync(ext2_fs_t* fs)
 {
-    fs->cache_sync(fs->cache_handle);
 }
 

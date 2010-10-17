@@ -39,123 +39,43 @@
 #include <ext2.h>
 #include "test.h"
 #include "cache.h"
-#include "cdi_cache.h"
 
 extern int image_fd;
 
-#undef DEBUG
+int dev_read(uint64_t start, size_t size, void* dest, void* prv)
+{
+    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
+        return 0;
+    }
 
-/**
- * Blocks fuer den Cache einlesen
- *
- * @param cache Cache-Handle
- * @param block Blocknummer
- * @param count Anzahl der zu lesenden BLocks
- * @param dest  Pointer auf Puffer in dem die Daten abgelegt werde sollen.
- * @param prv   Pointer auf unser fs
- *
- * @return Anzahl der gelesenen Blocks
- */
-static int read_block(struct cdi_cache* cache, uint64_t block, size_t count,
+    return (read(image_fd, dest, size) == size);
+}
+
+int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
+{
+    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
+        return 0;
+    }
+
+    return (write(image_fd, dest, size) == size);
+}
+
+int dev_readbuf(ext2_buffer_t* buf, uint64_t start, size_t size,
     void* dest, void* prv)
 {
-    uint64_t start = block * cache->block_size;
+   buf->start = start;
+   buf->size = size;
+   buf->data = dest;
 
-    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
-        return 0;
-    }
-
-    return read(image_fd, dest, count * cache->block_size) / cache->block_size;
+   return dev_read(start, size, dest, prv);
 }
 
-/**
- * Blocks fuer den Cache schreiben
- *
- * @param cache Cache-Handle
- * @param block Blocknummer
- * @param count Anzahl der zu schreibenden Blocks
- * @param src   Pointer auf Puffer aus dem die Daten gelesen werden sollen.
- * @param prv   Pointer auf unser fs
- *
- * @return Anzahl der geschriebenen Blocks
- */
-static int write_block(struct cdi_cache* cache, uint64_t block, size_t count,
-    const void* src, void* prv)
+int dev_writebuf(ext2_buffer_t* buf, void* prv)
 {
-    uint64_t start = block * cache->block_size;
-
-    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
-        return 0;
-    }
-
-    return write(image_fd, src, count * cache->block_size) / cache->block_size;
+    return dev_write(buf->start, buf->size, buf->data, prv);
 }
 
-
-void* cache_create(struct ext2_fs* fs, size_t block_size)
+void dev_freebuf(ext2_buffer_t* buf, void* prv)
 {
-    return cdi_cache_create(block_size, sizeof(ext2_cache_block_t),
-        read_block, write_block, fs);
-}
-
-void cache_destroy(void* handle)
-{
-    cdi_cache_destroy(handle);
-}
-
-void cache_sync(void* handle)
-{
-    if (!cdi_cache_sync(handle)) {
-        puts("cache: Sync fehlgeschlagen");
-    }
-}
-
-ext2_cache_block_t* cache_block(void* handle, uint64_t block, int noread)
-{
-    struct cdi_cache* c = handle;
-    struct cdi_cache_block* cdi_b;
-    ext2_cache_block_t* b;
-
-    if (!(cdi_b = cdi_cache_block_get(c, block))) {
-        return NULL;
-    }
-
-    b = cdi_b->private;
-    b->opaque = cdi_b;
-    b->data = cdi_b->data;
-    b->cache = handle;
-    b->number = block;
-
-#ifdef DEBUG
-    printf("cache_block(%d)\n", (unsigned int) b->number);
-#endif
-    return b;
-}
-
-void cache_block_dirty(ext2_cache_block_t* b)
-{
-    struct cdi_cache* c = b->cache;
-    struct cdi_cache_block* cdi_b = b->opaque;
-
-#ifdef DEBUG
-    printf("cache_block_dirty(%d)\n", (unsigned int) b->number);
-#endif
-    cdi_cache_block_dirty(c, cdi_b);
-}
-
-void cache_block_free(ext2_cache_block_t* b, int dirty)
-{
-    struct cdi_cache* c = b->cache;
-    struct cdi_cache_block* cdi_b = b->opaque;
-
-#ifdef DEBUG
-    printf("cache_block_free(%d)\n", (unsigned int) b->number);
-#endif
-
-    if (dirty) {
-        cache_block_dirty(b);
-    }
-
-    cdi_cache_block_release(c, cdi_b);
 }
 

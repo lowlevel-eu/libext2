@@ -73,52 +73,24 @@ static int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
     return (write(fd, dest, size) == size);
 }
 
-static void* cache_create(struct ext2_fs* fs, size_t block_size)
+static int dev_readbuf(ext2_buffer_t* buf, uint64_t start, size_t size,
+    void* dest, void* prv)
 {
-    cache_t* c = malloc(sizeof(c));
-    c->block_size = block_size;
-    return c;
+   buf->start = start;
+   buf->size = size;
+   buf->data = dest;
+
+   return dev_read(start, size, dest, prv);
 }
 
-static void cache_destroy(void* handle)
+static int dev_writebuf(ext2_buffer_t* buf, void* prv)
 {
-    cache_t* c = handle;
-    free(c);
+    return dev_write(buf->start, buf->size, buf->data, prv);
 }
 
-static ext2_cache_block_t* cache_block(void* handle, uint64_t block, int noread)
+static void dev_freebuf(ext2_buffer_t* buf, void* prv)
 {
-    cache_t* c = handle;
-    ext2_cache_block_t* b = malloc(sizeof(*b));
-    size_t bs = c->block_size;
-
-    b->data = malloc(bs);
-    if (!noread) {
-        dev_read(block * bs, bs, b->data, NULL);
-    }
-    b->cache = handle;
-    b->number = block;
-    return b;
 }
-
-static void cache_block_dirty(ext2_cache_block_t* b)
-{
-    cache_t* c = b->cache;
-    size_t bs = c->block_size;
-
-    dev_write(b->number * bs, bs, b->data, NULL);
-}
-
-static void cache_block_free(ext2_cache_block_t* b, int dirty)
-{
-    if (dirty) {
-        cache_block_dirty(b);
-    }
-
-    free(b->data);
-    free(b);
-}
-
 
 int etool_img_init(const char* img)
 {
@@ -130,13 +102,11 @@ int etool_img_init(const char* img)
     }
 
     fs->dev_read = dev_read;
+    fs->dev_readbuf = dev_readbuf;
     fs->dev_write = dev_write;
+    fs->dev_writebuf = dev_writebuf;
+    fs->dev_freebuf = dev_freebuf;
 
-    fs->cache_create = cache_create;
-    fs->cache_destroy = cache_destroy;
-    fs->cache_block = cache_block;
-    fs->cache_block_dirty = cache_block_dirty;
-    fs->cache_block_free = cache_block_free;
 
     if (!ext2_fs_mount(fs)) {
         fprintf(stderr, "Mounten fehlgeschlagen\n");

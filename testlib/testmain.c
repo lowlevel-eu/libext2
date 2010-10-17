@@ -48,24 +48,6 @@ char* test_name;
 char* image_name;
 int image_fd;
 
-int dev_read(uint64_t start, size_t size, void* dest, void* prv)
-{
-    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
-        return 0;
-    }
-
-    return (read(image_fd, dest, size) == size);
-}
-
-int dev_write(uint64_t start, size_t size, const void* dest, void* prv)
-{
-    if (lseek(image_fd, (off_t) start, SEEK_SET) == (off_t) -1) {
-        return 0;
-    }
-
-//    fprintf(stderr, "dev_write: start = %8lx, size = %4ld \n", start, size);
-    return (write(image_fd, dest, size) == size);
-}
 
 static void sigsegv_handler(int sig)
 {
@@ -79,14 +61,10 @@ int main(int argc, char* argv[])
 
     fs.dev_read = dev_read;
     fs.dev_write = dev_write;
+    fs.dev_readbuf = dev_readbuf;
+    fs.dev_writebuf = dev_writebuf;
+    fs.dev_freebuf = dev_freebuf;
     fs.dev_private = NULL;
-
-    fs.cache_create = cache_create;
-    fs.cache_destroy = cache_destroy;
-    fs.cache_sync = cache_sync;
-    fs.cache_block = cache_block;
-    fs.cache_block_dirty = cache_block_dirty;
-    fs.cache_block_free = cache_block_free;
 
     signal(SIGSEGV, sigsegv_handler);
 

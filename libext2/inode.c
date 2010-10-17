@@ -39,87 +39,47 @@
 
 static uint64_t block_free(ext2_fs_t* fs, uint64_t num);
 
-static inline ext2_cache_block_t* get_bg_block(ext2_fs_t* fs, int group_nr)
+static inline uint64_t bg_offset(ext2_fs_t* fs, int group_nr)
 {
-    uint64_t num;
     size_t bs = ext2_sb_blocksize(fs->sb);
-
-    num = fs->sb_block + 1 + (group_nr * sizeof(ext2_blockgroup_t)) / bs; 
-    return fs->cache_block(fs->cache_handle, num, 0);
+    return bs * (fs->sb_block + 1) + (group_nr * sizeof(ext2_blockgroup_t));
 }
 
-int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
+static inline uint64_t inode_offset(ext2_fs_t* fs, uint64_t inode_nr)
 {
-    ext2_cache_block_t* b = get_bg_block(fs, group_nr);
-
-    if (!b) {
-        return 0;
-    }
-
-    memcpy(bg, b->data + (group_nr * sizeof(ext2_blockgroup_t)) %
-        ext2_sb_blocksize(fs->sb), sizeof(ext2_blockgroup_t));
-    fs->cache_block_free(b, 0);
-    return 1;
-}
-
-int ext2_bg_update(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
-{
-    ext2_cache_block_t* b = get_bg_block(fs, group_nr);
-
-    if (!b) {
-        return 0;
-    }
-
-    memcpy(b->data + (group_nr * sizeof(ext2_blockgroup_t)) %
-        ext2_sb_blocksize(fs->sb), bg, sizeof(ext2_blockgroup_t));
-    fs->cache_block_free(b, 1);
-    return 1;
-}
-
-/**
- * Pointer auf den Cache-Block in dem sich der Inode befindet holen.
- *
- * @param fs        Dateisystem zu dem der Inode gehoert
- * @param inode_nr  Inodenummer
- * @param offset    Wenn != 0 wird an dieser Speicherstelle der Offset vom
- *                  Anfang dieses Blocks aus zum Inode abgelegt.
- *
- * @return Pointer auf das Handle fuer diesen Block
- */
-static inline ext2_cache_block_t* inode_get_block(
-    ext2_fs_t* fs, uint64_t inode_nr, size_t* offset)
-{
-    uint64_t    inode_offset;
-    uint64_t    inode_internal = ext2_inode_to_internal(fs, inode_nr);
-    size_t      inode_size = ext2_sb_inodesize(fs->sb);
-    size_t      bs = ext2_sb_blocksize(fs->sb);
     ext2_blockgroup_t bg;
+    size_t bs = ext2_sb_blocksize(fs->sb);
+    uint64_t inode_internal = ext2_inode_to_internal(fs, inode_nr);
+    size_t inode_size = ext2_sb_inodesize(fs->sb);
+    uint64_t inode_offset;
 
     ext2_bg_read(fs, inode_internal / fs->sb->inodes_per_group, &bg);
 
     // Offset des Inodes zum Anfang der Tabelle
     inode_offset = inode_size * (inode_internal % fs->sb->inodes_per_group);
 
-    // Offset zum Anfang des Blocks
-    if (offset) {
-        *offset = inode_offset % bs;
-    }
+    return (bg.inode_table * bs + inode_offset);
+}
 
-    return fs->cache_block(fs->cache_handle, bg.inode_table +
-        inode_offset / bs, 0);
+int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
+{
+    return fs->dev_read(bg_offset(fs, group_nr), sizeof(*bg), bg,
+        fs->dev_private);
+}
+
+int ext2_bg_update(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg)
+{
+    return fs->dev_write(bg_offset(fs, group_nr), sizeof(*bg), bg,
+        fs->dev_private);
 }
 
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
 {
-    size_t offset;
-    ext2_cache_block_t* b;
-
-    if (!(b = inode_get_block(fs, inode_nr, &offset))) {
+    if (!fs->dev_read(inode_offset(fs, inode_nr), sizeof(inode->raw),
+        &inode->raw, fs->dev_private))
+    {
         return 0;
     }
-
-    inode->raw = b->data + offset;
-    inode->block = b;
 
     inode->fs = fs;
     inode->number = inode_nr;
@@ -128,32 +88,15 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
 
 void ext2_inode_release(ext2_inode_t* inode)
 {
-    ext2_fs_t* fs = inode->fs;
-    fs->cache_block_free(inode->block, 0);
-    inode->block = NULL;
-    inode->raw = NULL;
 }
 
 int ext2_inode_update(ext2_inode_t* inode)
 {
     ext2_fs_t* fs = inode->fs;
-    fs->cache_block_dirty(inode->block);
-    return 1;
+    return fs->dev_write(inode_offset(fs, inode->number), sizeof(inode->raw),
+        &inode->raw, fs->dev_private);
 }
 
-/**
- * Block mit der Inode-Bitmap holen
- *
- * @param fs    Das Dateisystem
- * @param bg    Blockgruppendeskriptor
- *
- * @return Blockhandle
- */
-static inline ext2_cache_block_t* ibitmap_get_block(
-    ext2_fs_t* fs, ext2_blockgroup_t* bg)
-{
-    return fs->cache_block(fs->cache_handle, bg->inode_bitmap, 0);
-}
 
 /**
  * Neuen Inode allozieren
@@ -163,15 +106,22 @@ static inline ext2_cache_block_t* ibitmap_get_block(
 static uint64_t inode_alloc(ext2_fs_t* fs, uint32_t bgnum)
 {
     uint32_t* bitmap;
-    ext2_cache_block_t* block;
     uint32_t i, j;
+
+    size_t bs = ext2_sb_blocksize(fs->sb);
+    uint8_t block_buf[bs];
+    ext2_buffer_t buf;
 
     ext2_blockgroup_t bg;
     ext2_bg_read(fs, bgnum, &bg);
 
     // Bitmap laden
-    block = ibitmap_get_block(fs, &bg);
-    bitmap = block->data;
+    if (!fs->dev_readbuf(&buf, bg.inode_bitmap * bs, bs, block_buf,
+        fs->dev_private))
+    {
+        return 0;
+    }
+    bitmap = buf.data;
 
     // Freies Bit suchen
     for (i = 0; i < (fs->sb->inodes_per_group + 31) / 32; i++) {
@@ -186,14 +136,15 @@ static uint64_t inode_alloc(ext2_fs_t* fs, uint32_t bgnum)
         }
     }
 
-    fs->cache_block_free(block, 0);
+    fs->dev_freebuf(&buf, fs->dev_private);
     return 0;
 
 found:
 
     // Als besetzt markieren
     bitmap[i] |= (1 << j);
-    fs->cache_block_free(block, 1);
+    fs->dev_writebuf(&buf, fs->dev_private);
+    fs->dev_freebuf(&buf, fs->dev_private);
 
     fs->sb->free_inodes--;
     ext2_sb_update(fs, fs->sb);
@@ -227,7 +178,7 @@ found:
         return 0;
     }
 
-    memset(inode->raw, 0, sizeof(*inode->raw));
+    memset(&inode->raw, 0, sizeof(inode->raw));
     return 1;
 }
 
@@ -238,23 +189,32 @@ int ext2_inode_free(ext2_inode_t* inode)
     int i;
 
     // dtime muss fuer geloeschte Inodes != 0 sein
-    inode->raw->deletion_time = inode->fs->sb->inode_count; // FIXME
+    inode->raw.deletion_time = inode->fs->sb->inode_count; // FIXME
 
     // Inodebitmap anpassen
     uint32_t bgnum = inode_int / fs->sb->inodes_per_group;
     uint32_t num = inode_int % fs->sb->inodes_per_group;
     uint32_t* bitmap;
-    size_t   block_size = ext2_sb_blocksize(fs->sb);
-    ext2_cache_block_t* block;
+    size_t bs = ext2_sb_blocksize(fs->sb);
+
+    uint8_t block_buf[bs];
+    ext2_buffer_t buf;
+
     ext2_blockgroup_t bg;
     ext2_bg_read(fs, bgnum, &bg);
 
-    block = ibitmap_get_block(fs, &bg);
-    bitmap = block->data;
+    // Bitmap laden
+    if (!fs->dev_readbuf(&buf, bg.inode_bitmap * bs, bs, block_buf,
+        fs->dev_private))
+    {
+        return 0;
+    }
+    bitmap = buf.data;
 
     bitmap[num / 32] &= ~(1 << (num % 32));
 
-    fs->cache_block_free(block, 1);
+    fs->dev_writebuf(&buf, fs->dev_private);
+    fs->dev_freebuf(&buf, fs->dev_private);
 
     fs->sb->free_inodes++;
     ext2_sb_update(fs, fs->sb);
@@ -266,12 +226,17 @@ int ext2_inode_free(ext2_inode_t* inode)
     {
         uint32_t i;
         uint32_t* table;
-        ext2_cache_block_t* block;
+        uint8_t block_buf[bs];
+        ext2_buffer_t buf;
 
-        block = fs->cache_block(fs->cache_handle, table_block, 0);
-        table = block->data;
+        if (!fs->dev_readbuf(&buf, table_block * bs, bs, block_buf,
+            fs->dev_private))
+        {
+            return;
+        }
+        table = buf.data;
 
-        for (i = 0; i < block_size / 4; i++) {
+        for (i = 0; i < bs / 4; i++) {
             if (table[i]) {
                 if (level) {
                     free_indirect_blocks(table[i], level - 1);
@@ -280,21 +245,22 @@ int ext2_inode_free(ext2_inode_t* inode)
             }
         }
 
-        fs->cache_block_free(block, 1);
+        fs->dev_writebuf(&buf, fs->dev_private);
+        fs->dev_freebuf(&buf, fs->dev_private);
     }
 
     // Abbrechen bei fast-Symlinks
-    if (!inode->raw->block_count) {
+    if (!inode->raw.block_count) {
         return 1;
     }
 
     // Blocks freigeben
     for (i = 0; i < 15; i++) {
-        if (inode->raw->blocks[i]) {
+        if (inode->raw.blocks[i]) {
             if (i >= 12) {
-                free_indirect_blocks(inode->raw->blocks[i], i - 12);
+                free_indirect_blocks(inode->raw.blocks[i], i - 12);
             }
-            block_free(inode->fs, inode->raw->blocks[i]);
+            block_free(inode->fs, inode->raw.blocks[i]);
         }
     }
 
@@ -323,29 +289,15 @@ static int block_alloc_bg(ext2_fs_t* fs, ext2_blockgroup_t* bg)
     return -1;
 }
 
-/**
- * Block mit der Block-Bitmap holen
- *
- * @param fs    Das Dateisystem
- * @param bg    Blockgruppendeskriptor
- *
- * @return Blockhandle
- */
-static inline ext2_cache_block_t* bbitmap_get_block(
-    ext2_fs_t* fs, ext2_blockgroup_t* bg)
-{
-    return fs->cache_block(fs->cache_handle, bg->block_bitmap, 0);
-}
-
 
 static uint64_t block_alloc(ext2_fs_t* fs, int set_zero)
 {
     uint32_t* bitmap;
     uint64_t block_num;
     uint32_t i, j;
-    size_t   block_size = ext2_sb_blocksize(fs->sb);
-    ext2_cache_block_t* block;
-    ext2_cache_block_t* new_block;
+    size_t bs = ext2_sb_blocksize(fs->sb);
+    uint8_t block_buf[bs];
+    ext2_buffer_t buf;
     uint32_t bgnum;
     ext2_blockgroup_t bg;
 
@@ -355,8 +307,12 @@ static uint64_t block_alloc(ext2_fs_t* fs, int set_zero)
     }
 
     // Bitmap laden
-    block = bbitmap_get_block(fs, &bg);
-    bitmap = block->data;
+    if (!fs->dev_readbuf(&buf, bg.block_bitmap * bs, bs, block_buf,
+        fs->dev_private))
+    {
+        return 0;
+    }
+    bitmap = buf.data;
 
     // Zuerst Blocks nach dem vorherigen alloziierten pruefen
     if (fs->block_prev_alloc &&
@@ -387,7 +343,7 @@ static uint64_t block_alloc(ext2_fs_t* fs, int set_zero)
         }
     }
 
-    fs->cache_block_free(block, 0);
+    fs->dev_freebuf(&buf, fs->dev_private);
     return 0;
 
 found:
@@ -396,14 +352,15 @@ found:
 
     // Mit Nullen initialisieren, falls gewuenscht
     if (set_zero) {
-        new_block = fs->cache_block(fs->cache_handle, block_num, 1);
-        memset(new_block->data, 0, block_size);
-        fs->cache_block_free(new_block, 1);
+        uint8_t newbuf[bs];
+        memset(newbuf, 0, bs);
+        fs->dev_write(block_num * bs, bs, newbuf, fs->dev_private);
     }
 
     // Als besetzt markieren
     bitmap[i] |= (1 << j);
-    fs->cache_block_free(block, 1);
+    fs->dev_writebuf(&buf, fs->dev_private);
+    fs->dev_freebuf(&buf, fs->dev_private);
 
     fs->sb->free_blocks--;
     ext2_sb_update(fs, fs->sb);
@@ -419,7 +376,9 @@ static uint64_t block_free(ext2_fs_t* fs, uint64_t num)
 {
     uint32_t* bitmap;
     uint32_t bgnum;
-    ext2_cache_block_t* block;
+    size_t bs = ext2_sb_blocksize(fs->sb);
+    uint8_t block_buf[bs];
+    ext2_buffer_t buf;
 
     num -= fs->sb->first_data_block;
     bgnum = num / fs->sb->blocks_per_group;
@@ -429,12 +388,13 @@ static uint64_t block_free(ext2_fs_t* fs, uint64_t num)
     ext2_bg_read(fs, bgnum, &bg);
 
     // Bitmap laden
-    block = bbitmap_get_block(fs, &bg);
-    bitmap = block->data;
+    fs->dev_readbuf(&buf, bg.block_bitmap * bs, bs, block_buf, fs->dev_private);
+    bitmap = buf.data;
 
     // Als frei markieren
     bitmap[num / 32] &= ~(1 << (num % 32));
-    fs->cache_block_free(block, 1);
+    fs->dev_writebuf(&buf, fs->dev_private);
+    fs->dev_freebuf(&buf, fs->dev_private);
 
     fs->sb->free_blocks++;
     ext2_sb_update(fs, fs->sb);
@@ -487,7 +447,8 @@ static inline int get_indirect_block_level(ext2_inode_t* inode, uint64_t block,
 static uint64_t get_block_offset(
     ext2_inode_t* inode, uint64_t block, int alloc)
 {
-    size_t    block_size;
+    ext2_fs_t* fs = inode->fs;
+    size_t    bs = ext2_sb_blocksize(fs->sb);
     uint64_t  block_nr;
     uint64_t  indirect_block;
     uint64_t  direct_block;
@@ -495,14 +456,12 @@ static uint64_t get_block_offset(
     int       i;
     uint32_t  j;
     uint32_t* table;
-    ext2_cache_block_t* b;
+    uint8_t block_buf[bs];
+    ext2_buffer_t buf;
+
     // Wird zum freigeben von Blocks benoetigt
     uint64_t path[4][2];
     memset(path, 0, sizeof(path));
-
-    ext2_fs_t* fs = inode->fs;
-    block_size = ext2_sb_blocksize(fs->sb);
-
 
     // Herausfinden wie oft indirekt der gesuchte Block ist
     level = get_indirect_block_level(inode, block, &direct_block,
@@ -510,10 +469,10 @@ static uint64_t get_block_offset(
 
     // Direkte Blocknummer oder Nummer des ersten Tabellenblocks aus dem Inode
     // lesen
-    block_nr = inode->raw->blocks[direct_block];
+    block_nr = inode->raw.blocks[direct_block];
     if (!block_nr && (alloc == 1)) {
-        block_nr = inode->raw->blocks[direct_block] = block_alloc(fs, level);
-        inode->raw->block_count += block_size / 512;
+        block_nr = inode->raw.blocks[direct_block] = block_alloc(fs, level);
+        inode->raw.block_count += bs / 512;
     }
     path[0][0] = block_nr;
 
@@ -523,12 +482,12 @@ static uint64_t get_block_offset(
         uint64_t offset;
         uint64_t pow;
 
-        b = fs->cache_block(fs->cache_handle, block_nr, 0);
-        table = b->data;
+        fs->dev_readbuf(&buf, block_nr * bs, bs, block_buf, fs->dev_private);
+        table = buf.data;
 
         // pow = (block_size / 4) ** (level - i - 1)
-        pow = (level - i == 3 ? ((block_size / 4) * (block_size / 4)) :
-            (level - i == 2 ? (block_size / 4) : 1));
+        pow = (level - i == 3 ? ((bs / 4) * (bs / 4)) :
+            (level - i == 2 ? (bs / 4) : 1));
         offset = indirect_block / pow;
         indirect_block %= pow;
 
@@ -543,15 +502,19 @@ static uint64_t get_block_offset(
         // Block allozieren wenn noetig und gewuenscht
         if (!block_nr && (alloc == 1)) {
             block_nr = table[offset] = block_alloc(fs, (level - i) > 1);
-            inode->raw->block_count += block_size / 512;
+            inode->raw.block_count += bs / 512;
             table_modified = 1;
         }
-        fs->cache_block_free(b, table_modified);
+
+        if (table_modified) {
+            fs->dev_writebuf(&buf, fs->dev_private);
+        }
+        fs->dev_freebuf(&buf, fs->dev_private);
     }
 
     // Wenn der Block nicht freigegeben werden soll, sind wir jetzt fertig
     if (alloc != 2) {
-        return block_size * block_nr;
+        return bs * block_nr;
     }
 
     // Blocks freigeben
@@ -559,15 +522,16 @@ static uint64_t get_block_offset(
     for (i = level; (i > 0) && empty; i--) {
         int was_empty = empty;
 
-        b = fs->cache_block(fs->cache_handle, path[i - 1][0], 0);
-        table = b->data;
+        fs->dev_readbuf(&buf, path[i - 1][0] * bs, bs, block_buf,
+            fs->dev_private);
+        table = buf.data;
 
         // Wenn es sich um einen Tabellenblock handelt, muss er leer sein
         // (Hier wird eigentlich der naechste gepfrueft... das funktioniert aber
         // so, da wir nur in die Schleife kommen wenn es sich um einen
         // indirekten Block handelt, und da der oberste Block bei i = level
         // nicht geprueft werden muss, da er nur ein Datenblock ist.
-        for (j = 0; (j < block_size / 4) && empty; j++) {
+        for (j = 0; (j < bs / 4) && empty; j++) {
             if (table[j]) {
                 empty = 0;
             }
@@ -576,29 +540,31 @@ static uint64_t get_block_offset(
         if (was_empty && path[i][0]) {
             table[path[i - 1][1]] = 0;
             block_free(fs, path[i][0]);
-            inode->raw->block_count -= block_size / 512;
+            inode->raw.block_count -= bs / 512;
         }
 
-        fs->cache_block_free(b, was_empty);
+        if (was_empty) {
+            fs->dev_writebuf(&buf, fs->dev_private);
+        }
+        fs->dev_freebuf(&buf, fs->dev_private);
     }
 
     // Der Letzte muss manuell freigegeben werden, da er nicht in einer
     // Blocktabelle eingetragen ist.
     if (!path[0][1] && path[0][0] && empty) {
-        inode->raw->blocks[direct_block] = 0;
+        inode->raw.blocks[direct_block] = 0;
 
-        inode->raw->block_count -= block_size / 512;
+        inode->raw.block_count -= bs / 512;
         block_free(fs, path[0][0]);
     }
-    return block_size * block_nr;
+    return bs * block_nr;
 }
 
 int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf,
     size_t count)
 {
     ext2_fs_t* fs = inode->fs;
-    ext2_cache_block_t* b;
-    size_t block_size = ext2_sb_blocksize(fs->sb);
+    size_t bs = ext2_sb_blocksize(fs->sb);
     uint64_t offset;
     size_t i;
 
@@ -607,17 +573,13 @@ int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf,
 
         // Ein paar Nullen fuer Sparse Files
         if (offset == 0) {
-            memset(buf + block_size * i, 0, block_size);
+            memset(buf + bs * i, 0, bs);
             continue;
         }
 
-        b = fs->cache_block(fs->cache_handle, offset / block_size, 0);
-        if (!b) {
+        if (!fs->dev_read(offset, bs, buf + bs * i, fs->dev_private)) {
             return i;
         }
-
-        memcpy(buf + block_size * i, b->data, block_size);
-        fs->cache_block_free(b, 0);
     }
 
     return count;
@@ -642,20 +604,16 @@ int ext2_inode_blockoffsets( ext2_inode_t* inode, uint64_t block, size_t count,
 static int writeblk(ext2_inode_t* inode, uint64_t block, const void* buf)
 {
     ext2_fs_t* fs = inode->fs;
-    ext2_cache_block_t* b;
     uint64_t block_offset = get_block_offset(inode, block, 1);
-    size_t   block_size = ext2_sb_blocksize(fs->sb);
+    size_t bs = ext2_sb_blocksize(fs->sb);
 
     if (block_offset == 0) {
         return 0;
     }
 
-    b = fs->cache_block(fs->cache_handle, block_offset / block_size, 1);
-    memcpy(b->data, buf, block_size);
-    if (!b) {
+    if (!fs->dev_write(block_offset, bs, buf, fs->dev_private)) {
         return 0;
     }
-    fs->cache_block_free(b, 1);
 
     return 1;
 }
@@ -665,8 +623,8 @@ int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
     size_t block_size = ext2_sb_blocksize(inode->fs->sb);
     int ret = writeblk(inode, block, buf);
 
-    if ((block + 1) * block_size > inode->raw->size) {
-        inode->raw->size = (block + 1) * block_size;
+    if ((block + 1) * block_size > inode->raw.size) {
+        inode->raw.size = (block + 1) * block_size;
     }
 
     return ret;
@@ -814,8 +772,8 @@ int ext2_inode_writedata(
     }
 
 out:
-    if (start + req_len > inode->raw->size) {
-        inode->raw->size = start + req_len;
+    if (start + req_len > inode->raw.size) {
+        inode->raw.size = start + req_len;
     }
 
     return 1;
@@ -826,14 +784,14 @@ int ext2_inode_truncate(ext2_inode_t* inode, uint64_t size)
     size_t block_size = ext2_sb_blocksize(inode->fs->sb);
     uint64_t first_to_free = (size / block_size) + 1;
     uint64_t last_to_free =
-        ((inode->raw->size + block_size - 1) / block_size);
+        ((inode->raw.size + block_size - 1) / block_size);
     uint64_t i;
 
     for (i = first_to_free; i <= last_to_free; i++) {
         get_block_offset(inode, i, 2);
     }
 
-    inode->raw->size = size;
+    inode->raw.size = size;
 
     if (!ext2_inode_update(inode)) {
         return 0;
@@ -842,8 +800,8 @@ int ext2_inode_truncate(ext2_inode_t* inode, uint64_t size)
     return 1;
 }
 
-#define DL(n,v) printf("   %s: %d %u 0x%x\n", n, (int) (inode->raw->v), \
-    (unsigned int) (inode->raw->v), (unsigned int) (inode->raw->v));
+#define DL(n,v) printf("   %s: %d %u 0x%x\n", n, (int) (inode->raw.v), \
+    (unsigned int) (inode->raw.v), (unsigned int) (inode->raw.v));
 void ext2_inode_dump(ext2_inode_t* inode)
 {
     printf("Inode %d:\n", inode->number);

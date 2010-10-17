@@ -64,7 +64,7 @@ static int handle_dirent(ext2_dirent_t* dirent, void* prv)
     printf("%s", prefix);
 
     if (f_show_size) {
-        printf("%d ", inode.raw->size);
+        printf("%d ", inode.raw.size);
     }
 
     printf("%s\n", name);

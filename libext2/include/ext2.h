@@ -41,6 +41,13 @@
 
 struct ext2_superblock_t;
 
+typedef struct ext2_buffer {
+    uint64_t start;
+    size_t size;
+    void* data;
+    void* opaque;
+} ext2_buffer_t;
+
 /**
  * Zentrale Struktur zur Verwaltung eines eingebundenen Dateisystemes
  */
@@ -52,13 +59,35 @@ typedef struct ext2_fs {
      * @param start Position von der an gelesen werden soll
      * @param size  Anzahl der zu lesenden Bytes
      * @param dest  Pointer auf den Puffer in dem die Daten abgelegt werden
-     *              sollen
+     *              sollen.
      * @param prv   Private Daten zum Zugriff auf den Datentraeger (z.B.
      *              Dateideskriptor), aus dev_private zu entnehmen
      *
      * @return 1 wenn das Lesen geklappt hat, 0 sonst
      */
     int (*dev_read)(uint64_t start, size_t size, void* dest, void* prv);
+
+    /**
+     * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
+     * liest Daten vom Datentraeger ein, auf dem sich das Dateisystem befindet.
+     * Der Puffer muss danach mit dev_freebuf freigegeben werden. Die Funktion
+     * garantiert nicht, dass der Inhalt auch nach dest kopiert wird. Falls das
+     * erwuenscht ist, kann dev_read benutzt werden.
+     *
+     * @param buf   Puffer-Handle
+     * @param start Position von der an gelesen werden soll
+     * @param size  Anzahl der zu lesenden Bytes
+     * @param dest  Pointer auf den Puffer in dem die Daten abgelegt werden
+     *              koennen. Die Funktion kann aber auch einen eigenen Puffer
+     *              allozieren, der dann in buf gefunden werden kann.
+     * @param prv   Private Daten zum Zugriff auf den Datentraeger (z.B.
+     *              Dateideskriptor), aus dev_private zu entnehmen
+     *
+     * @return 1 wenn das Lesen geklappt hat, 0 sonst
+     */
+    int (*dev_readbuf)(
+        ext2_buffer_t* buf, uint64_t start, size_t size, void* dest,
+            void* prv);
 
     /**
      * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
@@ -79,73 +108,27 @@ typedef struct ext2_fs {
 
     /**
      * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
-     * erstellt einen neuen Cache und gibt ein Handle darauf zurueck.
+     * schreibt einen veraenderten Puffer zurueck, der zuvor mit dev_readbuf
+     * gelesen wurde. Der Puffer muss danach immernoch mit dev_freebuf
+     * freigegeben werden.
      *
-     * @param fs            Pointer auf das Dateisystem fuer das der Cache
-     *                      erstellt werden soll.
-     * @param block_size    Blockgroesse im Cache
+     * @param buf Puffer-Handle
+     * @param prv Private Daten zum Zugriff auf den Datentraeger (z.B.
+     *            Dateideskriptor), aus dev_private zu entnehmen
      *
-     * @return Handle oder NULL im Fehlerfall
+     * @return 1 wenn das Schreiben geklappt hat, 0 sonst
      */
-    void* (*cache_create)(struct ext2_fs* fs, size_t block_size);
+    int (*dev_writebuf)(ext2_buffer_t* buf, void* prv);
 
     /**
      * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
-     * zerstoert einen mit cache_create erstellten Cache
-     *
-     * @param cache Handle
+     * gibt die internen Daten des Puffer-Handles frei.
      */
-    void (*cache_destroy)(void* handle);
-
-    /**
-     * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
-     * schreibt alle veraenderten Cache-Blocks auf die Platte
-     *
-     * @param cache Handle
-     */
-    void (*cache_sync)(void* handle);
-
-    /**
-     * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
-     * holt einen Block aus dem Cache und gibt einen Pointer auf ein
-     * Block-Handle zrueck. Dieser Pointer ist mindestens solange gueltig, wie
-     * das Handle nicht freigegeben wird.
-     *
-     * @param cache     Cache-Handle
-     * @param block     Blocknummer
-     * @param noread    Wenn dieser Parameter != 0 ist, wird der Block nicht
-     *                  eingelesen. Das kann benutzt werden, wenn er eh
-     *                  vollstaendig ueberschrieben wird.
-     *
-     * @return Block-Handle
-     */
-    struct ext2_cache_block* (*cache_block)(void* cache, uint64_t block,
-        int noread);
-
-    /**
-     * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
-     * markiert den angegebenen Block als veraendert, damit er geschrieben wird,
-     * bevor er aus dem Cache entfernt wird.
-     *
-     * @param handle Block-Handle
-     */
-    void (*cache_block_dirty)(struct ext2_cache_block* handle);
-
-    /**
-     * Funktionspointer der vom Aufrufer gesetzt werden muss. Diese Funktion
-     * gibt einen mit cache_block alloziierten Block wieder frei.
-     *
-     * @param handle    Block-Handle
-     * @param dirty     Wenn != 0 wird der Block auch als Dirty markiert
-     */
-    void (*cache_block_free)(struct ext2_cache_block* handle, int dirty);
+    void (*dev_freebuf)(ext2_buffer_t* buf, void* prv);
 
 
     /// Private Daten zum Zugriff auf den Datentraeger
     void* dev_private;
-
-    /// Handle fuer Blockcache
-    void* cache_handle;
 
     /// Superblock des Dateisystems
     struct ext2_superblock_t* sb;
@@ -160,22 +143,6 @@ typedef struct ext2_fs {
     uint64_t block_prev_alloc;
 } ext2_fs_t;
 
-/**
- * Cache-Block-Handle
- */
-typedef struct ext2_cache_block {
-    /// Blocknummer
-    uint64_t number;
-
-    /// Daten
-    void* data;
-
-    /// Cache-Handle
-    void* cache;
-
-    /// Daten fuer die Implementierung
-    void* opaque;
-} ext2_cache_block_t;
 
 /**
  * ext2-Dateisystem einbinden. Dafuer muessen dev_read, dev_write und

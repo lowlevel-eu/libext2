@@ -33,19 +33,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** Cache-Handle fuer ext2-Blockcache */
-typedef struct cache {
-    size_t block_size;
-} cache_t;
-
-
-void* cache_create(struct ext2_fs* fs, size_t block_size);
-void cache_destroy(void* handle);
-void cache_sync(void* handle);
-ext2_cache_block_t* cache_block(void* handle, uint64_t block, int noread);
-void cache_block_dirty(ext2_cache_block_t* b);
-void cache_block_free(ext2_cache_block_t* b, int dirty);
+#include<ext2.h>
 
 int dev_read(uint64_t start, size_t size, void* dest, void* prv);
 int dev_write(uint64_t start, size_t size, const void* dest, void* prv);
+int dev_readbuf(
+    ext2_buffer_t* buf, uint64_t start, size_t size, void* dest, void* prv);
+int dev_writebuf(ext2_buffer_t* buf, void* prv);
+void dev_freebuf(ext2_buffer_t* buf, void* prv);
 
