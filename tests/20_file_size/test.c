@@ -10,8 +10,9 @@
  */
 int run_test(ext2_fs_t* fs)
 {
-    ext2_inode_t rootdir;
-    rootdir.raw->size = 0;
+    ext2_inode_t rootdir = {
+        .raw = NULL,
+    };
 
     ext2_fs_mount(fs);
 
