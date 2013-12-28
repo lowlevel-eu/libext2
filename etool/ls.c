@@ -71,7 +71,7 @@ static int handle_dirent(ext2_dirent_t* dirent, void* prv)
 
 end:
     free(name);
-    return 0;
+    return result;
 }
 
 static void ls(const char* path)
