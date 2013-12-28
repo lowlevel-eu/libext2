@@ -11,6 +11,7 @@
 int run_test(ext2_fs_t* fs)
 {
     ext2_inode_t rootdir;
+    ext2_dirent_t *dirent;
     char buf[4096];
 
     ext2_fs_mount(fs);
@@ -23,13 +24,14 @@ int run_test(ext2_fs_t* fs)
         test_interror("Block konnte nicht eingelesen werden");
     }
 
-    if (*((uint16_t*)((ext2_dirent_t*) buf)->name) != 0x002e) {
+    dirent = (ext2_dirent_t*) buf;
+    if (memcmp(dirent->name, ".", 2)) {
         test_error("Verzeichniseintrag . erwartet");
     }
 
-    if (((ext2_dirent_t*) buf)->inode != 2) {
+    if (dirent->inode != 2) {
         test_error("Verzeichniseintrag fuer . verweist auf falsche Inode",
-            ((ext2_dirent_t*) buf)->inode);
+            dirent->inode);
     }
 
     ext2_inode_release(&rootdir);
