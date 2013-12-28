@@ -97,4 +97,5 @@ clean: clean_tests
 	@rm -f $(ALL_OBJS) $(TESTS:%=tests/%/test) libtest.a libext2.a etool/etool
 
 %.o: %.c
+	@(echo $^ | grep -qe "^tests/") || echo "  CC $^"
 	@$(CC) $(CFLAGS) -c -o $@ $^
