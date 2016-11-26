@@ -3,7 +3,7 @@ OBJECT_FILES = $(addsuffix .o,$(basename $(1)))
 
 LL_OBJS= $(LIBEXT2_OBJ)
 
-TESTS= $(notdir $(wildcard tests/*))
+TESTS= $(sort $(notdir $(wildcard tests/*)))
 
 CFLAGS += -O2 -Wall -Werror -g
 CFLAGS_LIBEXT2 += -Wextra -Wno-unused-parameter
